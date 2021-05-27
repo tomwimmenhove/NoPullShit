@@ -161,7 +161,7 @@ void setup()
   RATE_PORT |= RATE_MASK; // 80Hz
 
   // Interrupt on DOUT going low. Causes wake-up
-  //attachInterrupt(0, pin_dout_interrupt, FALLING);
+  attachInterrupt(0, pin_dout_interrupt, FALLING);
 
   // Disable ADC
   ADCSRA &= ~(1 << 7);
@@ -209,9 +209,9 @@ void beep_disable()
   }
 }
 
+bool standby = true;
 void standby_checker(int32_t value_diff)
 {
-  static bool standby = true;
   static uint16_t standby_timer = 0;
 
   if (!beeping && value_diff < sens_threshold)
@@ -223,8 +223,6 @@ void standby_checker(int32_t value_diff)
 #ifdef DEBUG
         Serial.println("Going to standby");
 #endif
-        // Don't wake up on DOUT
-        detachInterrupt(0);
 
 #ifndef ALWAYS_80HZ
         RATE_PORT |= RATE_MASK; // 80Hz rate (50ms settling time, saves mucho power
@@ -243,8 +241,6 @@ void standby_checker(int32_t value_diff)
 #ifdef DEBUG
       Serial.println("Activity! Waking up from standby");
 #endif
-      // Interrupt on DOUT going low. Causes wake-up
-      attachInterrupt(0, pin_dout_interrupt, FALLING);
 
 #ifndef ALWAYS_80HZ
       RATE_PORT &= ~RATE_MASK; // 10Hz default rate
@@ -274,6 +270,13 @@ void loop()
 
   wdt_reset();
 
+  // If we're in standby, we just got woken up by the watchdog. Wake up the scale and go back to sleep
+  if (standby && !beeping)
+  {
+    SCK_PORT &= ~SCK_MASK;    
+    deep_sleep();
+  }
+
   int32_t v = read() - baseline;
   if (v > 1000)
   {
@@ -283,7 +286,6 @@ void loop()
   {
     beep_disable();
   }
-  //deep_sleep();
 
   standby_checker(abs(last_value - v));
 
@@ -302,6 +304,7 @@ ISR(WDT_vect)
 {
 #ifdef DEBUG
   Serial.println("Watchdog Interrupt");
+  Serial.flush();
 #endif
 }
 
