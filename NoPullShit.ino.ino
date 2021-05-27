@@ -3,6 +3,8 @@
 #define DEBUG
 //#define CRAZY_DEBUG
 
+#define ALWAYS_80HZ
+
 #define LED_PORT PORTB
 #define LED_MASK (1 << PINB5)
 
@@ -17,6 +19,20 @@
 
 #define PWM_DDR DDRB
 #define PWM_MASK (1 << PINB3)
+
+#ifdef ALWAYS_80HZ
+#define RATE 80
+#else
+#define RATE 10
+#endif
+
+#ifdef DEBUG
+uint16_t standby_threshold = 5 * RATE;
+#else
+uint16_t standby_threshold = 60 * RATE;
+#endif
+
+int32_t sens_threshold = 1000;
 
 void setup_timer()
 {
@@ -144,11 +160,13 @@ void setup()
 }
 
 bool beeping = false;
+int8_t wave_pos = 0;
 
 void beep_enable()
 {
   if (!beeping)
   {
+    wave_pos = 0;
     TIMSK2 |= (1 << OCIE2A); // Enable interrupt
     PWM_DDR |= PWM_MASK;
     beeping = true;
@@ -159,23 +177,16 @@ void beep_disable()
 {
   if (beeping)
   {
-    TIMSK2 = 0;//~(1 << OCIE2A); // Disable interrupt
-    PWM_DDR &= ~PWM_MASK;
+    //TIMSK2 = 0;//~(1 << OCIE2A); // Disable interrupt
+    //PWM_DDR &= ~PWM_MASK;
     beeping = false;
   }
 }
 
-#ifdef DEBUG
-uint8_t standby_threshold = 50;
-#else
-uint8_t standby_threshold = 600;
-#endif
-int32_t sens_threshold = 1000;
-
 void standby_checker(int32_t value_diff)
 {
   static bool standby = true;
-  static uint8_t standby_timer = 0;
+  static uint16_t standby_timer = 0;
 
   if (!beeping && value_diff < sens_threshold)
   {
@@ -189,7 +200,9 @@ void standby_checker(int32_t value_diff)
         // Don't wake up on DOUT
         detachInterrupt(0);
 
+#ifndef ALWAYS_80HZ
         RATE_PORT |= RATE_MASK; // 80Hz rate (50ms settling time, saves mucho power
+#endif
         
         standby = true;
       }
@@ -207,7 +220,9 @@ void standby_checker(int32_t value_diff)
       // Interrupt on DOUT going low. Causes wake-up
       attachInterrupt(0, pin_dout_interrupt, FALLING);
 
+#ifndef ALWAYS_80HZ
       RATE_PORT &= ~RATE_MASK; // 10Hz default rate
+#endif
 
       standby = false;
     }
@@ -282,12 +297,17 @@ const PROGMEM uint8_t sine[] = { 0x7f, 0xb1, 0xdb, 0xf6, 0xfd, 0xf1, 0xd3, 0xaa,
 
 ISR(TIMER2_COMPA_vect)
 {
-  static uint8_t i;
-  OCR2A = pgm_read_byte(&sine[i++]);
+  OCR2A = pgm_read_byte(&sine[wave_pos++]);
 
-  if (i == sizeof(sine))
+  if (wave_pos == sizeof(sine))
   {
-    i = 0;
+    // Checking for this here will remove 'clicks'
+    if (!beeping)
+    {
+      TIMSK2 = 0;//~(1 << OCIE2A); // Disable interrupt
+      PWM_DDR &= ~PWM_MASK;
+    }
+    wave_pos = 0;
   }
 }
 
