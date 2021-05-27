@@ -165,10 +165,6 @@ void beep_disable()
   }
 }
 
-int32_t last_value;
-
-bool standby = true;
-uint8_t standby_timer = 0;
 #ifdef DEBUG
 uint8_t standby_threshold = 50;
 #else
@@ -176,29 +172,12 @@ uint8_t standby_threshold = 600;
 #endif
 int32_t sens_threshold = 1000;
 
-void loop()
+void standby_checker(int32_t value_diff)
 {
-  // We will wake up when DOUT goes low. This means a conversion is ready.
-  if (!beeping)
-  {
-    deep_sleep();
-  }
+  static bool standby = true;
+  static uint8_t standby_timer = 0;
 
-  wdt_reset();
-
-  int32_t v = read() - baseline;
-  if (v > 1000)
-  {
-    beep_enable();
-  }
-  else
-  {
-    beep_disable();
-  }
-  //deep_sleep();
-
-#if 1
-  if (abs(last_value - v) < sens_threshold)
+  if (!beeping && value_diff < sens_threshold)
   {
     if (!standby)
     {
@@ -207,6 +186,9 @@ void loop()
 #ifdef DEBUG
         Serial.println("Going to standby");
 #endif
+        // Don't wake up on DOUT
+        detachInterrupt(0);
+
         RATE_PORT |= RATE_MASK; // 80Hz rate (50ms settling time, saves mucho power
         
         standby = true;
@@ -233,12 +215,36 @@ void loop()
 
   if (standby)
   {
-    // Put the scale to sleep
-    SCK_PORT |= SCK_MASK;
-    delayMicroseconds(60);
-    detachInterrupt(0);
+      // Put the scale to sleep
+      SCK_PORT |= SCK_MASK;
+      delayMicroseconds(60);
   }
-#endif
+}
+
+void loop()
+{
+  static int32_t last_value;
+  // We will wake up when DOUT goes low. This means a conversion is ready.
+  if (!beeping)
+  {
+    // Can't fall asleep during beeping!
+    deep_sleep();
+  }
+
+  wdt_reset();
+
+  int32_t v = read() - baseline;
+  if (v > 1000)
+  {
+    beep_enable();
+  }
+  else
+  {
+    beep_disable();
+  }
+  //deep_sleep();
+
+  standby_checker(abs(last_value - v));
 
 #ifdef DEBUG
   Serial.print("value: ");
