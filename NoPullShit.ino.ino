@@ -3,7 +3,7 @@
 #define DEBUG
 //#define CRAZY_DEBUG
 
-#define ALWAYS_80HZ
+//#define ALWAYS_80HZ
 
 #define LED_PORT PORTB
 #define LED_MASK (1 << PINB5)
@@ -32,6 +32,11 @@ uint16_t standby_threshold = 5 * RATE;
 uint16_t standby_threshold = 60 * RATE;
 #endif
 
+uint16_t config_time = 2 * RATE;
+uint16_t alert_timeout = RATE;
+
+int32_t reverse_force = -40000;
+
 int32_t sens_threshold = 1000;
 
 const PROGMEM uint8_t wave_sine[] = { 0x7f, 0x88, 0x92, 0x9b, 0xa4, 0xad, 0xb6, 0xbf, 0xc7, 0xcf, 0xd6, 0xdc, 0xe3, 0xe8, 0xed, 0xf2, 0xf5, 0xf8, 0xfb, 0xfc, 0xfd, 0xfe, 0xfd, 0xfc, 0xfa, 0xf7, 0xf4, 0xf0, 0xeb, 0xe6, 0xe0, 0xd9, 0xd2, 0xcb, 0xc3, 0xbb, 0xb2, 0xa9, 0xa0, 0x96, 0x8d, 0x83, 0x7a, 0x70, 0x67, 0x5d, 0x54, 0x4b, 0x42, 0x3a, 0x32, 0x2b, 0x24, 0x1d, 0x17, 0x12, 0x0d, 0x09, 0x06, 0x03, 0x01, 0x00, 0x00, 0x00, 0x01, 0x02, 0x05, 0x08, 0x0b, 0x10, 0x15, 0x1a, 0x21, 0x27, 0x2e, 0x36, 0x3e, 0x47, 0x50, 0x59, 0x62, 0x6b, 0x75, };
@@ -49,9 +54,6 @@ const PROGMEM uint8_t wave_sine[] = { 0x7f, 0x88, 0x92, 0x9b, 0xa4, 0xad, 0xb6, 
 const PROGMEM uint8_t wave_dog[] = { 0x7f, 0xb1, 0xdb, 0xf6, 0xfd, 0xf1, 0xd3, 0xaa, 0x7d, 0x53, 0x34, 0x23, 0x22, 0x30, 0x48, 0x66, 0x84, 0x9d, 0xae, 0xb5, 0xb2, 0xa7, 0x98, 0x88, 0x7a, 0x6f, 0x69, 0x67, 0x69, 0x6d, 0x72, 0x76, 0x7a, 0x7d, 0x80, 0x83, 0x87, 0x8b, 0x90, 0x94, 0x96, 0x94, 0x8e, 0x83, 0x75, 0x65, 0x56, 0x4b, 0x48, 0x4f, 0x60, 0x79, 0x97, 0xb5, 0xcd, 0xdb, 0xda, 0xc9, 0xaa, 0x80, 0x53, 0x2a, 0x0c, 0x00, 0x07, 0x22, 0x4c, };
 
 const PROGMEM uint8_t wave_alert[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, };
-
-const uint8_t* wave;
-uint8_t wave_size;
 
 void setup_timer()
 {
@@ -181,17 +183,15 @@ void setup()
 bool beeping = false;
 int8_t wave_pos = 0;
 
+const uint8_t* wave;
+uint8_t wave_size;
+
+#define beep(x) wave = x; wave_size = sizeof(x); beep_enable()
+
 void beep_enable()
 {
   if (!beeping)
   {
-#ifdef DEBUG
-    wave = wave_sine;
-    wave_size = sizeof(wave_sine);
-#else
-    wave = wave_dog;
-    wave_size = sizeof(wave_dog);
-#endif
     wave_pos = 0;
     TIMSK2 |= (1 << OCIE2A); // Enable interrupt
     PWM_DDR |= PWM_MASK;
@@ -258,6 +258,19 @@ void standby_checker(int32_t value_diff)
   }
 }
 
+bool alert = false;
+int8_t alert_count = 0;
+int16_t config_timer = 0;
+int16_t alert_timer = 0;
+int32_t pull_threshold = 1000;
+
+void beep_alert()
+{
+  beep(wave_alert);
+  delay(20);
+  beep_disable();
+}
+
 void loop()
 {
   static int32_t last_value;
@@ -278,13 +291,81 @@ void loop()
   }
 
   int32_t v = read() - baseline;
-  if (v > 1000)
+  if (config_timer)
   {
-    beep_enable();
+    config_timer--;
+    
+    /* Use the maximum force within the configuration period */
+    if (v > pull_threshold)
+    {
+      pull_threshold = v;    
+    }
+
+    if (!config_timer)
+    {
+      // Let the user know the time is up
+      beep_alert();
+      delay(100);
+      beep_alert();
+      delay(100);
+      beep_alert();
+    }
   }
   else
   {
-    beep_disable();
+    if (v > pull_threshold)
+    {
+#ifdef DEBUG
+      beep(wave_sine);
+#else
+      beep(wave_dog);
+#endif
+    }
+    else
+    {
+      beep_disable();
+    }
+  }
+
+  if (alert_timer)
+  {
+    alert_timer--;
+    if (!alert_timer)
+    {
+      alert_count = 0;
+    }
+  }
+
+  if (!config_timer && v < reverse_force)
+  {
+    alert_timer = alert_timeout;
+    if (!alert)
+    {
+      alert = true;
+      
+      if (++alert_count <= 2)
+      {
+        // Single beep to let the user know the push was registered
+        beep_alert();
+      }
+      else
+      {
+        alert_count = 0;
+
+        beep_alert();
+        delay(100);
+        beep_alert();
+        delay(100);
+        beep_alert();
+
+        config_timer = config_time;
+        pull_threshold = 0;
+      }
+    }
+  }
+  else
+  {
+    alert = false;
   }
 
   standby_checker(abs(last_value - v));
@@ -315,6 +396,7 @@ ISR(TIMER2_COMPA_vect)
   if (wave_pos == wave_size)
   {
     // Checking for this here will remove 'clicks'
+    // XXX: Should. Doesn't.
     if (!beeping)
     {
       TIMSK2 = 0;//~(1 << OCIE2A); // Disable interrupt
