@@ -2,7 +2,6 @@
 #define CONFIG_H
 
 #define DEBUG
-//#define CRAZY_DEBUG
 
 //#define ALWAYS_80HZ
 
