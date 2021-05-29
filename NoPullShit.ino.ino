@@ -49,11 +49,11 @@ void setup()
          ~(1 << 3);  // PB3 is PWM out;
   DDRC = 0xff;
   DDRD = 0xff &
-#ifdef DEBUG
-         ~(1 << 1) & // PD1 = TX
-#endif
+         ~(1 << 0) & // PD0 = RX
          ~(1 << 2);  // PD2 is DOUT
 
+  PORTD |= (1 << 1); // TX
+  
 #ifdef DEBUG
   Serial.begin(115200);
   Serial.println("Reset");
@@ -75,7 +75,7 @@ void setup()
 
   // Disable ADC
   ADCSRA &= ~(1 << 7);
-
+  
   audio.init();
 
   watchdog_start();
@@ -149,9 +149,13 @@ void loop()
     deep_sleep();
   }
 
+#ifdef DEBUG
   LED_PORT |= LED_MASK;
+#endif
   int32_t v = scale.read() - baseline;
+#ifdef DEBUG
   LED_PORT &= ~LED_MASK;
+#endif
   
   if (config_timer)
   {
@@ -180,11 +184,7 @@ void loop()
   {
     if (v > pull_threshold)
     {
-#ifdef DEBUG
-      audio.beep(wave_sine, sizeof(wave_sine));
-#else
-      audio.beep(wave_dog, sizeof(wave_dog));
-#endif
+      audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
     }
     else
     {

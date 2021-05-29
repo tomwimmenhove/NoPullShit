@@ -1,7 +1,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define DEBUG
+//#define DEBUG
+//#define CRAZY_DEBUG
+
+#define BEEP_WAVE wave_sine
 
 //#define ALWAYS_80HZ
 
