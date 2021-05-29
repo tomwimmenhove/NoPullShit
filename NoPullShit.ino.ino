@@ -39,12 +39,11 @@ void deep_sleep()
   SMCR &= ~1; // disable sleep
 }
 
-void watchdog_start()
+void watchdog_start(uint8_t wdp)
 {
   cli();
   _WD_CONTROL_REG = (1 << WDCE) | (1 << WDE);
-  _WD_CONTROL_REG = (1 << WDIE) |
-                    (1 << WDP2) | (1 << WDP1); // 1 second
+  _WD_CONTROL_REG = (1 << WDIE) | wdp;
   sei();
 }
 
@@ -53,12 +52,14 @@ void setup()
   // set everything unused to outputs
   DDRB = 0xff &
          ~(1 << 3);  // PB3 is PWM out;
-  DDRC = 0xff;
+  DDRC = 0xff &
+         ~(1 << 0);  // ADC0 is batt monitor
   DDRD = 0xff &
          ~(1 << 0) & // PD0 = RX
          ~(1 << 2);  // PD2 is DOUT
 
   PORTD |= (1 << 1); // TX
+  BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Batt monitor disable
   
 # ifdef DEBUG
   Serial.begin(115200);
@@ -84,10 +85,51 @@ void setup()
   
   audio.init();
 
-  watchdog_start();
+  watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
 
   // Make sure there's at least one transition (DOUT falling) to get shit going
   baseline = scale.read();
+}
+
+void batt_monitor()
+{
+  bool dead = false;
+  while (true)
+  {
+    BATT_PLDWN_PORT &= ~BATT_PLDWN_MASK; // Batt monitor enable
+    ADCSRA |= (1 << 7); // Enable ADC  
+  
+    analogReference(INTERNAL);
+    int16_t batt = analogRead(0);
+  
+    ADCSRA &= ~(1 << 7); // Disable ADC
+    BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Batt monitor disable
+
+    if (batt >= BATT_MINIMUM)
+    {
+      break;
+    }
+
+    // Battery too low. Go to sleep.
+    if (!dead)
+    {
+      Serial.println("Battery too low. Going into coma");
+      Serial.flush();
+      dead = true;
+      watchdog_start((1 << WDP3) | (1 << WDP0)); // 8 seconds
+    }
+    scale.sleep();
+    delayMicroseconds(60);
+    deep_sleep();
+    wdt_reset();
+  }
+  
+  if (dead)
+  {
+    Serial.println("We're back");
+    Serial.flush();
+    watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
+  }
 }
 
 void update_baseline(int32_t& value)
@@ -117,11 +159,6 @@ bool standby_checker(int32_t value, int32_t last_value)
     if (value > value_max) value_max = value;
     if (min_max_counter++ > 8)
     {
-#     ifdef DEBUG
-      Serial.print("minmax diff: ");
-      Serial.println(value_max - value_min);
-      Serial.flush();
-#     endif
       value_diff = value_max - value_min;
       value_min = value_max = value;
       min_max_counter = 0;
@@ -155,6 +192,7 @@ void loop()
 {
   static int32_t last_value;
   static bool was_standby = true;
+  static int32_t new_pull_threshold;
 
   // Go to sleep, unless we're currenly beeping. We will wake up when DOUT goes low. This means a conversion is ready.
   if (!audio.is_beeping())
@@ -171,6 +209,8 @@ void loop()
     deep_sleep();
   }
 
+  batt_monitor();
+  
 # ifdef DEBUG
   LED_PORT |= LED_MASK;
 # endif
@@ -190,22 +230,26 @@ void loop()
       config_timer--;
       
       /* Use the maximum force within the configuration period */
-      if (value > pull_threshold && value > MIN_PULL_FORCE)
+      if (value > new_pull_threshold)
       {
-        pull_threshold = value;    
+        new_pull_threshold = value;    
       }
   
       if (!config_timer)
       {
-        // Let the user know the time is up
-        audio.alert();
-        delay(100);
-        audio.alert();
-        delay(100);
-        audio.alert();
+        if (new_pull_threshold > MIN_PULL_FORCE)
+        {
+          pull_threshold = new_pull_threshold;
+          // Let the user know the time is up
+          audio.alert();
+          delay(100);
+          audio.alert();
+          delay(100);
+          audio.alert();
   
-        // Save the configured value in EEPROM
-        EEPROM.put(EE_FORCE_ADDRESS, pull_threshold);
+          // Save the configured value in EEPROM
+          EEPROM.put(EE_FORCE_ADDRESS, pull_threshold);
+        }
       }
     }
     else
@@ -261,7 +305,7 @@ void loop()
         audio.alert();
 
         config_timer = CONFIG_TIME;
-        pull_threshold = 0;
+        new_pull_threshold = 0;
       }
     }
   }
@@ -327,8 +371,8 @@ void pin_dout_interrupt() { }
 ISR(WDT_vect)
 {
 # ifdef DEBUG
-  Serial.println("Watchdog Interrupt");
-  Serial.flush();
+  //Serial.println("Watchdog Interrupt");
+  //Serial.flush();
 # endif
 }
 
