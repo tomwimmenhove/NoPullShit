@@ -39,6 +39,7 @@
 #define RATE_MASK (1 << PIND3)
 
 #define PWM_DDR DDRB
+#define PWM_PORT PORTB
 #define PWM_MASK (1 << PINB3)
 
 #define EE_FORCE_ADDRESS 0

@@ -2,7 +2,7 @@
 #include "waves.h"
 
 static bool beeping = false;
-static int8_t wave_pos = 0;
+static volatile int8_t wave_pos = 0;
 static uint8_t* wave = nullptr;
 static uint8_t wave_size = 0;
 
@@ -25,7 +25,7 @@ void pwm_audio::beep_enable()
   if (!beeping)
   {
     wave_pos = 0;
-    TIMSK2 |= (1 << OCIE2A); // Enable interrupt
+    TIMSK2 |= (1 << OCIE2A); // Enable timer interrupt
     PWM_DDR |= PWM_MASK;
     beeping = true;
   }
@@ -33,7 +33,14 @@ void pwm_audio::beep_enable()
 
 void pwm_audio::beep_disable()
 {
-  beeping = false;
+  if (beeping)
+  {
+    beeping = false;
+    while (wave_pos) { } // Wait for zero-crossing
+    TIMSK2 = 0; // Disable timer interrupt
+    PWM_DDR &= ~PWM_MASK;
+    PWM_PORT &= ~PWM_MASK;
+  }
 }
 
 void pwm_audio::alert()
@@ -54,13 +61,6 @@ ISR(TIMER2_COMPA_vect)
 
   if (wave_pos == wave_size)
   {
-    // Checking for this here will remove 'clicks'
-    // XXX: Should. Doesn't.
-    if (!beeping)
-    {
-      TIMSK2 = 0;//~(1 << OCIE2A); // Disable interrupt
-      PWM_DDR &= ~PWM_MASK;
-    }
     wave_pos = 0;
   }
 }
