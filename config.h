@@ -1,8 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-//#define DEBUG
-//#define CRAZY_DEBUG
+#define DEBUG
 
 #define BEEP_WAVE wave_sine
 
@@ -25,6 +24,7 @@
 #define REVERSE_FORCE (-40000)
 #define HIST_FORCE 1000
 #define IDLE_DELTA_FORCE_THRESHOLD 1000
+#define UPDATE_BASELINE_AFTER 5
 
 // Pin definitions:
 #define LED_PORT PORTB

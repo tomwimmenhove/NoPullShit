@@ -12,6 +12,8 @@ static int8_t alert_count = 0;
 static int16_t config_timer = 0;
 static int16_t alert_timer = 0;
 static int32_t baseline = 0;
+static bool standby = true;
+static int16_t update_baseline_timer = 0;
 
 static pwm_audio audio;
 static hx711 scale(&DOUT_PIN, DOUT_MASK, &SCK_PORT, SCK_MASK, &RATE_PORT, RATE_MASK);
@@ -84,7 +86,6 @@ void setup()
   baseline = scale.read();
 }
 
-bool standby = true;
 void standby_checker(int32_t value_diff)
 {
   static uint16_t standby_timer = 0;
@@ -155,8 +156,12 @@ void loop()
   int32_t v = scale.read() - baseline;
 #ifdef DEBUG
   LED_PORT &= ~LED_MASK;
+
+  Serial.print("value: ");
+  Serial.println(v);
+  Serial.flush();
 #endif
-  
+
   if (config_timer)
   {
     config_timer--;
@@ -240,12 +245,26 @@ void loop()
   }
 
   standby_checker(abs(last_value - v));
-
+  if (standby)
+  {
+    if (update_baseline_timer++ >= UPDATE_BASELINE_AFTER)
+    {
+      update_baseline_timer = 0;
 #ifdef DEBUG
-  Serial.print("value: ");
-  Serial.println(v);
-  Serial.flush();
+      Serial.print("Updating baseline: ");
+      Serial.println(v + baseline);
+      Serial.flush();
 #endif
+      baseline = v + baseline;
+
+      // set v such that it won't trigger a change on the next iteration
+      v = 0;
+    }
+  }
+  else
+  {
+    update_baseline_timer = 0;
+  }
 
   last_value = v;
 }
