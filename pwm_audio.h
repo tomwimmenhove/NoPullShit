@@ -14,9 +14,6 @@ public:
   void beep_disable();
   void alert();
   bool is_beeping();
-
-private:
-  static const PROGMEM uint8_t wave_alert[40];
 };
 
 #endif /* PWM_AUDIO_H */
