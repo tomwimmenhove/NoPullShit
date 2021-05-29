@@ -162,7 +162,7 @@ void loop()
     config_timer--;
     
     /* Use the maximum force within the configuration period */
-    if (v > pull_threshold)
+    if (v > pull_threshold && v > HIST_FORCE)
     {
       pull_threshold = v;    
     }
@@ -182,14 +182,20 @@ void loop()
   }
   else
   {
-    if (v > pull_threshold)
+    if (!audio.is_beeping())
     {
-      audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
+      if (v > pull_threshold + HIST_FORCE)
+      {
+        audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
+      }
     }
     else
     {
-      audio.beep_disable();
-    }
+      if (v < pull_threshold - HIST_FORCE)
+      {
+        audio.beep_disable();        
+      }
+    }    
   }
 
   if (alert_timer)

@@ -6,7 +6,7 @@
 
 #define BEEP_WAVE wave_sine
 
-//#define ALWAYS_80HZ
+#define ALWAYS_80HZ
 
 #ifdef ALWAYS_80HZ
 #define RATE 80
@@ -23,6 +23,7 @@
 #define CONFIG_TIME (2 * RATE)
 #define ALERT_TIMEOUT (RATE)
 #define REVERSE_FORCE (-40000)
+#define HIST_FORCE 1000
 #define IDLE_DELTA_FORCE_THRESHOLD 1000
 
 // Pin definitions:
