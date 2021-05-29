@@ -6,14 +6,18 @@
 #include "hx711.h"
 #include "waves.h"
 
-static int32_t pull_threshold = 1000;
+static int32_t pull_threshold = MIN_PULL_FORCE;
 static bool alert = false;
 static int8_t alert_count = 0;
 static int16_t config_timer = 0;
 static int16_t alert_timer = 0;
 static int32_t baseline = 0;
-static bool standby = true;
 static int16_t update_baseline_timer = 0;
+
+static int32_t value_min = 0;
+static int32_t value_max = 0;
+static int8_t min_max_counter = 0;
+static bool pulling = false;
 
 static pwm_audio audio;
 static hx711 scale(&DOUT_PIN, DOUT_MASK, &SCK_PORT, SCK_MASK, &RATE_PORT, RATE_MASK);
@@ -56,10 +60,10 @@ void setup()
 
   PORTD |= (1 << 1); // TX
   
-#ifdef DEBUG
+# ifdef DEBUG
   Serial.begin(115200);
   Serial.println("Reset");
-#endif
+# endif
 
   // Read the configured force from the EEPROM
   int32_t f;
@@ -86,24 +90,50 @@ void setup()
   baseline = scale.read();
 }
 
-void standby_checker(int32_t value_diff)
+void update_baseline(int32_t& value)
 {
+# ifdef DEBUG
+  Serial.print("Updating baseline: ");
+  Serial.println(value + baseline);
+  Serial.flush();
+# endif
+  baseline = value + baseline;
+  value = 0;
+}
+
+bool standby_checker(int32_t value, int32_t last_value)
+{
+  static bool standby = true;
   static uint16_t standby_timer = 0;
 
-  if (!audio.is_beeping() && value_diff < IDLE_DELTA_FORCE_THRESHOLD)
+  int32_t value_diff;
+  if (standby)
+  {
+    value_diff = abs(value - last_value);
+  }
+  else
+  {
+    if (value < value_min) value_min = value;
+    if (value > value_max) value_max = value;
+    if (min_max_counter++ > 8)
+    {
+#     ifdef DEBUG
+      Serial.print("minmax diff: ");
+      Serial.println(value_max - value_min);
+      Serial.flush();
+#     endif
+      value_diff = value_max - value_min;
+      value_min = value_max = value;
+      min_max_counter = 0;
+    }
+  }  
+
+  if (value_diff < IDLE_DELTA_FORCE_THRESHOLD)
   {
     if (!standby)
     {
       if (standby_timer++ > STANDBY_TIMEOUT)
       {
-#ifdef DEBUG
-        Serial.println("Going to standby");
-#endif
-
-#ifndef ALWAYS_80HZ
-        scale.set_rate(true); // 80Hz rate (50ms settling time, saves mucho power
-#endif
-        
         standby = true;
       }
     }
@@ -114,27 +144,18 @@ void standby_checker(int32_t value_diff)
     
     if (standby)
     {
-#ifdef DEBUG
-      Serial.println("Activity! Waking up from standby");
-#endif
-
-#ifndef ALWAYS_80HZ
-      scale.set_rate(false); // 10Hz default rate
-#endif
-
       standby = false;
     }
   }
 
-  if (standby)
-  {
-    scale.sleep();
-  }
+  return standby;
 }
 
 void loop()
 {
   static int32_t last_value;
+  static bool was_standby = true;
+
   // Go to sleep, unless we're currenly beeping. We will wake up when DOUT goes low. This means a conversion is ready.
   if (!audio.is_beeping())
   {
@@ -144,63 +165,68 @@ void loop()
   wdt_reset();
 
   // If we're in standby, we just got woken up by the watchdog. Wake up the scale and go back to sleep
-  if (standby && !audio.is_beeping())
+  if (was_standby && !audio.is_beeping())
   {
     scale.wake_up();
     deep_sleep();
   }
 
-#ifdef DEBUG
+# ifdef DEBUG
   LED_PORT |= LED_MASK;
-#endif
-  int32_t v = scale.read() - baseline;
-#ifdef DEBUG
+# endif
+  int32_t value = scale.read() - baseline;
+# ifdef DEBUG
   LED_PORT &= ~LED_MASK;
 
-  Serial.print("value: ");
-  Serial.println(v);
-  Serial.flush();
-#endif
+  //Serial.print("value: ");
+  //Serial.println(v);
+  //Serial.flush();
+# endif
 
-  if (config_timer)
+  if (!was_standby)
   {
-    config_timer--;
-    
-    /* Use the maximum force within the configuration period */
-    if (v > pull_threshold && v > HIST_FORCE)
+    if (config_timer)
     {
-      pull_threshold = v;    
-    }
-
-    if (!config_timer)
-    {
-      // Let the user know the time is up
-      audio.alert();
-      delay(100);
-      audio.alert();
-      delay(100);
-      audio.alert();
-
-      // Save the configured value in EEPROM
-      EEPROM.put(EE_FORCE_ADDRESS, pull_threshold);
-    }
-  }
-  else
-  {
-    if (!audio.is_beeping())
-    {
-      if (v > pull_threshold + HIST_FORCE)
+      config_timer--;
+      
+      /* Use the maximum force within the configuration period */
+      if (value > pull_threshold && value > MIN_PULL_FORCE)
       {
-        audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
+        pull_threshold = value;    
+      }
+  
+      if (!config_timer)
+      {
+        // Let the user know the time is up
+        audio.alert();
+        delay(100);
+        audio.alert();
+        delay(100);
+        audio.alert();
+  
+        // Save the configured value in EEPROM
+        EEPROM.put(EE_FORCE_ADDRESS, pull_threshold);
       }
     }
     else
     {
-      if (v < pull_threshold - HIST_FORCE)
+      if (!audio.is_beeping())
       {
-        audio.beep_disable();        
+        if (value > pull_threshold + HIST_FORCE)
+        {
+          audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
+          pulling = true;
+        }
       }
-    }    
+      else
+      {
+        if (value < pull_threshold - HIST_FORCE)
+        {
+          audio.beep_disable();
+          pulling = false;
+        }
+      }    
+    }
   }
 
   if (alert_timer)
@@ -212,7 +238,7 @@ void loop()
     }
   }
 
-  if (!config_timer && v < REVERSE_FORCE)
+  if (!config_timer && value < REVERSE_FORCE)
   {
     alert_timer = ALERT_TIMEOUT;
     if (!alert)
@@ -243,22 +269,48 @@ void loop()
   {
     alert = false;
   }
+  
+  bool standby = standby_checker(value, last_value);
 
-  standby_checker(abs(last_value - v));
+  // We entered stand by mode
+  if (standby != was_standby && standby)
+  {
+#   ifdef DEBUG
+    Serial.println("Going to standby");
+    Serial.flush();
+#   endif
+
+#   ifndef ALWAYS_80HZ
+    scale.set_rate(true); // 80Hz rate (50ms settling time, saves mucho power
+#   endif
+#   ifdef UPDATE_BASELINE_ON_STANDBY
+    update_baseline(value);
+#   endif
+    audio.beep_disable();
+  }
+
+  // We returned from stand by mode
+  if (standby != was_standby && !standby)
+  {
+#   ifdef DEBUG
+    Serial.println("Activity! Waking up from standby");
+    Serial.flush();
+#   endif
+
+#   ifndef ALWAYS_80HZ
+    scale.set_rate(false); // 10Hz default rate
+#   endif
+  }
+
   if (standby)
   {
+    scale.sleep();
+
     if (update_baseline_timer++ >= UPDATE_BASELINE_AFTER)
     {
+      pulling = false;
       update_baseline_timer = 0;
-#ifdef DEBUG
-      Serial.print("Updating baseline: ");
-      Serial.println(v + baseline);
-      Serial.flush();
-#endif
-      baseline = v + baseline;
-
-      // set v such that it won't trigger a change on the next iteration
-      v = 0;
+      update_baseline(value);
     }
   }
   else
@@ -266,17 +318,18 @@ void loop()
     update_baseline_timer = 0;
   }
 
-  last_value = v;
+  last_value = value;
+  was_standby = standby;
 }
 
 void pin_dout_interrupt() { }
 
 ISR(WDT_vect)
 {
-#ifdef DEBUG
+# ifdef DEBUG
   Serial.println("Watchdog Interrupt");
   Serial.flush();
-#endif
+# endif
 }
 
 

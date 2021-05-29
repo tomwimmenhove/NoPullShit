@@ -6,6 +6,7 @@
 #define BEEP_WAVE wave_sine
 
 #define ALWAYS_80HZ
+#define UPDATE_BASELINE_ON_STANDBY
 
 #ifdef ALWAYS_80HZ
 #define RATE 80
@@ -19,12 +20,14 @@
 #define STANDBY_TIMEOUT (60 * RATE)
 #endif
 
-#define CONFIG_TIME (2 * RATE)
-#define ALERT_TIMEOUT (RATE)
-#define REVERSE_FORCE (-40000)
-#define HIST_FORCE 1000
-#define IDLE_DELTA_FORCE_THRESHOLD 1000
-#define UPDATE_BASELINE_AFTER 5
+#define CONFIG_TIME                 (2 * RATE)
+#define ALERT_TIMEOUT               (RATE * 3 / 4)
+#define UPDATE_BASELINE_AFTER       (5)
+
+#define REVERSE_FORCE               (-40000)
+#define HIST_FORCE                  (1000)
+#define IDLE_DELTA_FORCE_THRESHOLD  (1000)
+#define MIN_PULL_FORCE              (10000)
 
 // Pin definitions:
 #define LED_PORT PORTB
