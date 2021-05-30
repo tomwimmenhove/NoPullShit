@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define DEBUG
+//#define DEBUG
 
 #define BEEP_WAVE wave_sine
 
@@ -20,7 +20,8 @@
 #define STANDBY_TIMEOUT (60 * RATE)
 #endif
 
-#define BATT_MINIMUM                (850)
+#define BATT_COMA_BELOW             (400)
+#define BATT_WAKE_AT                (500)
 
 #define CONFIG_TIME                 (2 * RATE)
 #define ALERT_TIMEOUT               (RATE * 3 / 4)

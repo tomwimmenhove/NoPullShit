@@ -1,4 +1,5 @@
 #include <avr/wdt.h>
+#include <avr/sleep.h>
 #include <EEPROM.h>
 
 #include "config.h"
@@ -25,7 +26,7 @@ static hx711 scale(&DOUT_PIN, DOUT_MASK, &SCK_PORT, SCK_MASK, &RATE_PORT, RATE_M
 void deep_sleep()
 {
   // Disable sleep - this enables the sleep mode
-  SMCR |= (1 << 2); // power down mode
+  SMCR = (1 << 2); // power down mode
   SMCR |= 1;        // enable sleep
 
   // BOD disable - this must be called right before the sleep instruction
@@ -60,7 +61,7 @@ void setup()
 
   PORTD |= (1 << 1); // TX
   BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Batt monitor disable
-  
+
 # ifdef DEBUG
   Serial.begin(115200);
   Serial.println("Reset");
@@ -82,30 +83,61 @@ void setup()
 
   // Disable ADC
   ADCSRA &= ~(1 << 7);
-  
+
   audio.init();
 
-  watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
+  watchdog_start((1 << WDP2)  | (1 << WDP0) | (1 << WDP1)); // 1 second
 
   // Make sure there's at least one transition (DOUT falling) to get shit going
   baseline = scale.read();
 }
 
-void batt_monitor()
+EMPTY_INTERRUPT (ADC_vect);
+
+int16_t getReading (const byte port, bool sleep)
+{
+  BATT_PLDWN_PORT &= ~BATT_PLDWN_MASK; // Enable batt monitor
+  ADCSRA |= (1 << 7); // Enable ADC  
+
+  ADCSRA = (1 << ADEN) | (1 << ADIF);  // enable ADC, turn off any pending interrupt
+  ADCSRA |= (1 << ADPS0) | (1 << ADPS1) | (1 << ADPS2);   // prescaler of 128
+  ADMUX = (1 << REFS1) | (1 << REFS0) | (port & 0x07);  // 1.1v internal
+
+  if (sleep)
+  {
+    cli();
+    set_sleep_mode (SLEEP_MODE_ADC);    // sleep during sample
+    sleep_enable();
+  }
+  
+  // start the conversion
+  ADCSRA |= (1 << ADSC) | (1 << ADIE);
+
+  if (sleep)
+  {
+    sei();
+    sleep_cpu();
+    sleep_disable();
+  }
+
+  // Wait for conversion to finish
+  while (ADCSRA & (1 << ADSC)) { }
+  int16_t result = ADC;
+  
+  ADCSRA &= ~(1 << 7); // Disable ADC
+  BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Disable att monitor
+
+  return result;
+}
+
+void batt_monitor(bool sleep)
 {
   bool dead = false;
   while (true)
   {
-    BATT_PLDWN_PORT &= ~BATT_PLDWN_MASK; // Batt monitor enable
-    ADCSRA |= (1 << 7); // Enable ADC  
-  
-    analogReference(INTERNAL);
-    int16_t batt = analogRead(0);
-  
-    ADCSRA &= ~(1 << 7); // Disable ADC
-    BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Batt monitor disable
+    int16_t batt = getReading(0, sleep);
 
-    if (batt >= BATT_MINIMUM)
+    if (batt >= dead ? BATT_WAKE_AT : BATT_COMA_BELOW)
     {
       break;
     }
@@ -117,6 +149,7 @@ void batt_monitor()
       Serial.flush();
       dead = true;
       watchdog_start((1 << WDP3) | (1 << WDP0)); // 8 seconds
+      //watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
     }
     scale.sleep();
     delayMicroseconds(60);
@@ -209,7 +242,7 @@ void loop()
     deep_sleep();
   }
 
-  batt_monitor();
+  batt_monitor(was_standby);
   
 # ifdef DEBUG
   LED_PORT |= LED_MASK;
