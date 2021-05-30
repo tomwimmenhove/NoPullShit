@@ -6,6 +6,7 @@
 #include "pwm_audio.h"
 #include "hx711.h"
 #include "waves.h"
+#include "standby.h"
 
 static int32_t pull_threshold = MIN_PULL_FORCE;
 static bool alert = false;
@@ -15,14 +16,12 @@ static int16_t alert_timer = 0;
 static int32_t baseline = 0;
 static int16_t update_baseline_timer = 0;
 
-static int32_t value_min = 0;
-static int32_t value_max = 0;
-static int8_t min_max_counter = 0;
 static bool pulling = false;
 static bool dying = false;
 
 static pwm_audio audio;
 static hx711 scale(&DOUT_PIN, DOUT_MASK, &SCK_PORT, SCK_MASK, &RATE_PORT, RATE_MASK);
+static standby stdby;
 
 void deep_sleep()
 {
@@ -179,51 +178,6 @@ void update_baseline(int32_t& value)
   value = 0;
 }
 
-bool standby_checker(int32_t value, int32_t last_value)
-{
-  static bool standby = true;
-  static uint16_t standby_timer = 0;
-
-  int32_t value_diff;
-  if (standby)
-  {
-    value_diff = abs(value - last_value);
-  }
-  else
-  {
-    if (value < value_min) value_min = value;
-    if (value > value_max) value_max = value;
-    if (min_max_counter++ > 8)
-    {
-      value_diff = value_max - value_min;
-      value_min = value_max = value;
-      min_max_counter = 0;
-    }
-  }  
-
-  if (value_diff < IDLE_DELTA_FORCE_THRESHOLD)
-  {
-    if (!standby)
-    {
-      if (standby_timer++ > STANDBY_TIMEOUT)
-      {
-        standby = true;
-      }
-    }
-  }
-  else
-  {
-    standby_timer = 0;
-    
-    if (standby)
-    {
-      standby = false;
-    }
-  }
-
-  return standby;
-}
-
 void loop()
 {
   static int32_t last_value;
@@ -352,7 +306,7 @@ void loop()
     alert = false;
   }
   
-  bool standby = standby_checker(value, last_value);
+  bool standby = stdby.check(value, last_value);
 
   // We entered stand by mode
   if (standby != was_standby && standby)
