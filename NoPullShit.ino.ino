@@ -19,6 +19,7 @@ static int32_t value_min = 0;
 static int32_t value_max = 0;
 static int8_t min_max_counter = 0;
 static bool pulling = false;
+static bool dying = false;
 
 static pwm_audio audio;
 static hx711 scale(&DOUT_PIN, DOUT_MASK, &SCK_PORT, SCK_MASK, &RATE_PORT, RATE_MASK);
@@ -137,6 +138,8 @@ void batt_monitor(bool sleep)
   {
     int16_t batt = getReading(0, sleep);
 
+    dying = batt < BATT_DYING;
+
     if (batt >= dead ? BATT_WAKE_AT : BATT_COMA_BELOW)
     {
       break;
@@ -226,6 +229,7 @@ void loop()
   static int32_t last_value;
   static bool was_standby = true;
   static int32_t new_pull_threshold;
+  static uint16_t blink_timer = 0;
 
   // Go to sleep, unless we're currenly beeping. We will wake up when DOUT goes low. This means a conversion is ready.
   if (!audio.is_beeping())
@@ -248,11 +252,12 @@ void loop()
   LED_PORT |= LED_MASK;
 # endif
   int32_t value = scale.read() - baseline;
+  
 # ifdef DEBUG
   LED_PORT &= ~LED_MASK;
 
   //Serial.print("value: ");
-  //Serial.println(v);
+  //Serial.println(value);
   //Serial.flush();
 # endif
 
@@ -364,6 +369,9 @@ void loop()
     update_baseline(value);
 #   endif
     audio.beep_disable();
+
+    LED_PORT &= ~LED_MASK;
+    blink_timer = 0;
   }
 
   // We returned from stand by mode
@@ -393,6 +401,25 @@ void loop()
   else
   {
     update_baseline_timer = 0;
+
+    if (blink_timer < BLINK_TIME)
+    {
+      LED_PORT |= LED_MASK;      
+    }
+    else
+    {
+      LED_PORT &= ~LED_MASK;
+    }
+
+    uint16_t blink_interval = dying ? BLINK_INTERVAL_DYING : BLINK_INTERVAL;
+    if (blink_timer >= blink_interval)
+    {      
+      blink_timer = 0;
+    }
+    else
+    {
+      blink_timer++;      
+    }
   }
 
   last_value = value;

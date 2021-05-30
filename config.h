@@ -14,14 +14,15 @@
 #define RATE 10
 #endif
 
-#ifdef DEBUG
 #define STANDBY_TIMEOUT (5 * RATE)
-#else
-#define STANDBY_TIMEOUT (60 * RATE)
-#endif
 
 #define BATT_COMA_BELOW             (400)
+#define BATT_DYING                  (750)
 #define BATT_WAKE_AT                (500)
+
+#define BLINK_INTERVAL              (RATE * 2)
+#define BLINK_INTERVAL_DYING        (RATE / 2)
+#define BLINK_TIME                  (RATE / 40)
 
 #define CONFIG_TIME                 (2 * RATE)
 #define ALERT_TIMEOUT               (RATE * 3 / 4)
