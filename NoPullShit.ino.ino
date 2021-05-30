@@ -7,6 +7,7 @@
 #include "hx711.h"
 #include "waves.h"
 #include "standby.h"
+#include "sleepy_adc.h"
 
 static int32_t pull_threshold = MIN_PULL_FORCE;
 static bool alert = false;
@@ -46,6 +47,56 @@ void watchdog_start(uint8_t wdp)
   _WD_CONTROL_REG = (1 << WDCE) | (1 << WDE);
   _WD_CONTROL_REG = (1 << WDIE) | wdp;
   sei();
+}
+
+void batt_monitor(bool sleep)
+{
+  bool dead = false;
+  while (true)
+  {
+    BATT_PLDWN_PORT &= ~BATT_PLDWN_MASK; // Enable batt monitor
+    int16_t batt = getReading(0, sleep);
+    BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Disable batt monitor
+
+    dying = batt < BATT_DYING;
+
+    if (batt >= dead ? BATT_WAKE_AT : BATT_COMA_BELOW)
+    {
+      break;
+    }
+
+    // Battery too low. Go to sleep.
+    if (!dead)
+    {
+      Serial.println("Battery too low. Going into coma");
+      Serial.flush();
+      dead = true;
+      watchdog_start((1 << WDP3) | (1 << WDP0)); // 8 seconds
+      //watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
+    }
+    scale.sleep();
+    delayMicroseconds(60);
+    deep_sleep();
+    wdt_reset();
+  }
+  
+  if (dead)
+  {
+    Serial.println("We're back");
+    Serial.flush();
+    watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
+  }
+}
+
+void update_baseline(int32_t& value)
+{
+# ifdef DEBUG
+  Serial.print("Updating baseline: ");
+  Serial.println(value + baseline);
+  Serial.flush();
+# endif
+  baseline = value + baseline;
+  value = 0;
 }
 
 void setup()
@@ -92,92 +143,6 @@ void setup()
   baseline = scale.read();
 }
 
-EMPTY_INTERRUPT (ADC_vect);
-
-int16_t getReading (const byte port, bool sleep)
-{
-  BATT_PLDWN_PORT &= ~BATT_PLDWN_MASK; // Enable batt monitor
-  ADCSRA |= (1 << 7); // Enable ADC  
-
-  ADCSRA = (1 << ADEN) | (1 << ADIF);  // enable ADC, turn off any pending interrupt
-  ADCSRA |= (1 << ADPS0) | (1 << ADPS1) | (1 << ADPS2);   // prescaler of 128
-  ADMUX = (1 << REFS1) | (1 << REFS0) | (port & 0x07);  // 1.1v internal
-
-  if (sleep)
-  {
-    cli();
-    set_sleep_mode (SLEEP_MODE_ADC);    // sleep during sample
-    sleep_enable();
-  }
-  
-  // start the conversion
-  ADCSRA |= (1 << ADSC) | (1 << ADIE);
-
-  if (sleep)
-  {
-    sei();
-    sleep_cpu();
-    sleep_disable();
-  }
-
-  // Wait for conversion to finish
-  while (ADCSRA & (1 << ADSC)) { }
-  int16_t result = ADC;
-  
-  ADCSRA &= ~(1 << 7); // Disable ADC
-  BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Disable att monitor
-
-  return result;
-}
-
-void batt_monitor(bool sleep)
-{
-  bool dead = false;
-  while (true)
-  {
-    int16_t batt = getReading(0, sleep);
-
-    dying = batt < BATT_DYING;
-
-    if (batt >= dead ? BATT_WAKE_AT : BATT_COMA_BELOW)
-    {
-      break;
-    }
-
-    // Battery too low. Go to sleep.
-    if (!dead)
-    {
-      Serial.println("Battery too low. Going into coma");
-      Serial.flush();
-      dead = true;
-      watchdog_start((1 << WDP3) | (1 << WDP0)); // 8 seconds
-      //watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
-    }
-    scale.sleep();
-    delayMicroseconds(60);
-    deep_sleep();
-    wdt_reset();
-  }
-  
-  if (dead)
-  {
-    Serial.println("We're back");
-    Serial.flush();
-    watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
-  }
-}
-
-void update_baseline(int32_t& value)
-{
-# ifdef DEBUG
-  Serial.print("Updating baseline: ");
-  Serial.println(value + baseline);
-  Serial.flush();
-# endif
-  baseline = value + baseline;
-  value = 0;
-}
-
 void loop()
 {
   static int32_t last_value;
@@ -202,19 +167,8 @@ void loop()
 
   batt_monitor(was_standby);
   
-# ifdef DEBUG
-  LED_PORT |= LED_MASK;
-# endif
   int32_t value = scale.read() - baseline;
   
-# ifdef DEBUG
-  LED_PORT &= ~LED_MASK;
-
-  //Serial.print("value: ");
-  //Serial.println(value);
-  //Serial.flush();
-# endif
-
   if (!was_standby)
   {
     if (config_timer)
