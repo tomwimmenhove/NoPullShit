@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name NoPullShit-rescue)(type Legacy)(uri ${KIPRJMOD}/NoPullShit-rescue.lib)(options "")(descr ""))
+  (lib (name custom)(type Legacy)(uri ${KIPRJMOD}/Libraries/custom.lib)(options "")(descr ""))
+)
