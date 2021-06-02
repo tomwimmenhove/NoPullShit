@@ -776,7 +776,7 @@ Wire Wire Line
 	8500 4300 6800 4300
 Wire Wire Line
 	6800 4400 8500 4400
-Text Label 6800 4700 0    50   ~ 0
+Text Label 6800 4900 0    50   ~ 0
 LED_A
 Text Label 7400 1100 2    50   ~ 0
 LED_A
@@ -815,11 +815,11 @@ Text Label 4050 4600 0    50   ~ 0
 DOUT
 Text Label 4050 5000 0    50   ~ 0
 RATE
-Text Label 6800 2800 0    50   ~ 0
+Text Label 6800 4700 0    50   ~ 0
 SCK
-Text Label 6800 4500 0    50   ~ 0
-DOUT
 Text Label 6800 4600 0    50   ~ 0
+DOUT
+Text Label 6800 4500 0    50   ~ 0
 RATE
 $Comp
 L Device:R R16
