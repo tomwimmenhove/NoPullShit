@@ -697,7 +697,7 @@ U 1 1 60D3CAA5
 P 850 4500
 F 0 "J2" H 850 4700 50  0000 C CNN
 F 1 "Load cell" V 950 4450 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical" H 850 4500 50  0001 C CNN
+F 2 "Connector_PinHeader_2.00mm:PinHeader_1x04_P2.00mm_Vertical" H 850 4500 50  0001 C CNN
 F 3 "~" H 850 4500 50  0001 C CNN
 	1    850  4500
 	-1   0    0    -1  
@@ -776,7 +776,7 @@ Wire Wire Line
 	8500 4300 6800 4300
 Wire Wire Line
 	6800 4400 8500 4400
-Text Label 6800 4700 0    50   ~ 0
+Text Label 6800 4900 0    50   ~ 0
 LED_A
 Text Label 7400 1100 2    50   ~ 0
 LED_A
@@ -861,9 +861,9 @@ Wire Wire Line
 Wire Wire Line
 	6800 3500 8600 3500
 Connection ~ 8600 3500
-Text Label 6800 5000 0    50   ~ 0
+Text Label 6800 3700 0    50   ~ 0
 N_BATT_STDBY
-Text Label 6800 4900 0    50   ~ 0
+Text Label 6800 3800 0    50   ~ 0
 N_BATT_CHRG
 Wire Wire Line
 	7300 3100 7300 3200
@@ -947,7 +947,7 @@ U 1 1 60F2C3CD
 P 10600 2900
 F 0 "J7" H 10680 2942 50  0000 L CNN
 F 1 "Spk+" H 10680 2851 50  0000 L CNN
-F 2 "Connector_PinHeader_1.00mm:PinHeader_1x01_P1.00mm_Vertical" H 10600 2900 50  0001 C CNN
+F 2 "TestPoint:TestPoint_THTPad_1.0x1.0mm_Drill0.5mm" H 10600 2900 50  0001 C CNN
 F 3 "~" H 10600 2900 50  0001 C CNN
 	1    10600 2900
 	1    0    0    -1  
@@ -958,7 +958,7 @@ U 1 1 60F32235
 P 10600 3150
 F 0 "J8" H 10680 3192 50  0000 L CNN
 F 1 "Spk-" H 10680 3101 50  0000 L CNN
-F 2 "Connector_PinHeader_1.00mm:PinHeader_1x01_P1.00mm_Vertical" H 10600 3150 50  0001 C CNN
+F 2 "TestPoint:TestPoint_THTPad_1.0x1.0mm_Drill0.5mm" H 10600 3150 50  0001 C CNN
 F 3 "~" H 10600 3150 50  0001 C CNN
 	1    10600 3150
 	1    0    0    -1  
@@ -969,7 +969,7 @@ U 1 1 60F3305D
 P 5900 750
 F 0 "J3" H 5980 792 50  0000 L CNN
 F 1 "Batt+" H 5980 701 50  0000 L CNN
-F 2 "Connector_PinHeader_1.00mm:PinHeader_1x01_P1.00mm_Vertical" H 5900 750 50  0001 C CNN
+F 2 "TestPoint:TestPoint_THTPad_1.0x1.0mm_Drill0.5mm" H 5900 750 50  0001 C CNN
 F 3 "~" H 5900 750 50  0001 C CNN
 	1    5900 750 
 	1    0    0    -1  
@@ -980,7 +980,7 @@ U 1 1 60F3415B
 P 5900 950
 F 0 "J4" H 5980 992 50  0000 L CNN
 F 1 "Batt-" H 5980 901 50  0000 L CNN
-F 2 "Connector_PinHeader_1.00mm:PinHeader_1x01_P1.00mm_Vertical" H 5900 950 50  0001 C CNN
+F 2 "TestPoint:TestPoint_THTPad_1.0x1.0mm_Drill0.5mm" H 5900 950 50  0001 C CNN
 F 3 "~" H 5900 950 50  0001 C CNN
 	1    5900 950 
 	1    0    0    -1  
@@ -1235,4 +1235,70 @@ F 3 "https://www.onsemi.com/pub/Collateral/BC808-D.pdf" H 9650 3100 50  0001 L C
 	1    0    0    1   
 $EndComp
 Connection ~ 9750 2900
+$Comp
+L Mechanical:MountingHole_Pad H1
+U 1 1 60D37706
+P 4750 6950
+F 0 "H1" H 4850 6953 50  0000 L CNN
+F 1 "MountingHole_Pad" H 4850 6908 50  0001 L CNN
+F 2 "MountingHole:MountingHole_2.2mm_M2_Pad_Via" H 4750 6950 50  0001 C CNN
+F 3 "~" H 4750 6950 50  0001 C CNN
+	1    4750 6950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole_Pad H2
+U 1 1 60D3A9F3
+P 5100 6950
+F 0 "H2" H 5200 6953 50  0000 L CNN
+F 1 "MountingHole_Pad" H 5200 6908 50  0001 L CNN
+F 2 "MountingHole:MountingHole_2.2mm_M2_Pad_Via" H 5100 6950 50  0001 C CNN
+F 3 "~" H 5100 6950 50  0001 C CNN
+	1    5100 6950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole_Pad H3
+U 1 1 60D3B2D9
+P 5400 6950
+F 0 "H3" H 5500 6953 50  0000 L CNN
+F 1 "MountingHole_Pad" H 5500 6908 50  0001 L CNN
+F 2 "MountingHole:MountingHole_2.2mm_M2_Pad_Via" H 5400 6950 50  0001 C CNN
+F 3 "~" H 5400 6950 50  0001 C CNN
+	1    5400 6950
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole_Pad H4
+U 1 1 60D3B796
+P 5700 6950
+F 0 "H4" H 5800 6953 50  0000 L CNN
+F 1 "MountingHole_Pad" H 5800 6908 50  0001 L CNN
+F 2 "MountingHole:MountingHole_2.2mm_M2_Pad_Via" H 5700 6950 50  0001 C CNN
+F 3 "~" H 5700 6950 50  0001 C CNN
+	1    5700 6950
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0101
+U 1 1 60D3D771
+P 5250 7050
+F 0 "#PWR0101" H 5250 6800 50  0001 C CNN
+F 1 "GND" H 5255 6877 50  0000 C CNN
+F 2 "" H 5250 7050 50  0001 C CNN
+F 3 "" H 5250 7050 50  0001 C CNN
+	1    5250 7050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4750 7050 5100 7050
+Connection ~ 5100 7050
+Wire Wire Line
+	5100 7050 5250 7050
+Connection ~ 5250 7050
+Wire Wire Line
+	5250 7050 5400 7050
+Connection ~ 5400 7050
+Wire Wire Line
+	5400 7050 5700 7050
 $EndSCHEMATC
