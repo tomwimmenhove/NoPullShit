@@ -108,7 +108,7 @@ void setup()
          ~(1 << 0);  // ADC0 is batt monitor
   DDRD = 0xff &
          ~(1 << 0) & // PD0 = RX
-         ~(1 << 2);  // PD2 is DOUT
+         ~(1 << 3);  // PD3 is DOUT
 
   PORTD |= (1 << 1); // TX
   BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Batt monitor disable
@@ -130,7 +130,7 @@ void setup()
   scale.set_rate(true); // 80Hz
 
   // Interrupt on DOUT going low. Causes wake-up
-  attachInterrupt(0, pin_dout_interrupt, FALLING);
+  attachInterrupt(1, pin_dout_interrupt, FALLING);
 
   // Disable ADC
   ADCSRA &= ~(1 << 7);

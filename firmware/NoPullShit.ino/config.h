@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-//#define DEBUG
+#define DEBUG
 
 #define BEEP_WAVE wave_sine
 
@@ -37,14 +37,14 @@
 #define LED_PORT PORTB
 #define LED_MASK (1 << PINB5)
 
-#define SCK_PORT PORTB
-#define SCK_MASK (1 << PINB2)
+#define RATE_PORT PORTD
+#define RATE_MASK (1 << PIND2)
+
+#define SCK_PORT PORTD
+#define SCK_MASK (1 << PIND4)
 
 #define DOUT_PIN PIND
-#define DOUT_MASK (1 << PIND2)
-
-#define RATE_PORT PORTD
-#define RATE_MASK (1 << PIND3)
+#define DOUT_MASK (1 << PIND3)
 
 #define BATT_PLDWN_PORT PORTC
 #define BATT_PLDWN_MASK (1 << PINC1)
