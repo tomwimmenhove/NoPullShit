@@ -830,9 +830,9 @@ Wire Wire Line
 Wire Wire Line
 	6800 3500 8600 3500
 Connection ~ 8600 3500
-Text Label 6800 3700 0    50   ~ 0
-N_BATT_STDBY
 Text Label 6800 3800 0    50   ~ 0
+N_BATT_STDBY
+Text Label 6800 3700 0    50   ~ 0
 N_BATT_CHRG
 Wire Wire Line
 	7300 3100 7300 3200
