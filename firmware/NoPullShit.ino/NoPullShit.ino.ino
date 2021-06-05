@@ -110,7 +110,8 @@ void setup()
          ~(1 << 0) & // PD0 = RX
          ~(1 << 3);  // PD3 is DOUT
 
-  PORTD |= (1 << 1); // TX
+  //PORTD |= (1 << 1); // TX
+  PORTD &= ~(1 << 1); // TX
   BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Batt monitor disable
 
 # ifdef DEBUG

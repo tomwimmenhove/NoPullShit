@@ -297,17 +297,6 @@ F 3 "" H 5700 750 50  0001 C CNN
 	1    5700 750 
 	1    0    0    -1  
 $EndComp
-$Comp
-L power:VCC #PWR022
-U 1 1 60C15EE1
-P 6200 1550
-F 0 "#PWR022" H 6200 1400 50  0001 C CNN
-F 1 "VCC" H 6217 1723 50  0000 C CNN
-F 2 "" H 6200 1550 50  0001 C CNN
-F 3 "" H 6200 1550 50  0001 C CNN
-	1    6200 1550
-	1    0    0    -1  
-$EndComp
 Wire Wire Line
 	6200 2300 6200 2200
 Wire Wire Line
@@ -317,7 +306,6 @@ Wire Wire Line
 	6200 1850 6300 1850
 Wire Wire Line
 	6300 1850 6300 2200
-Connection ~ 6200 1850
 Connection ~ 6300 2200
 $Comp
 L power:GND #PWR023
@@ -727,17 +715,6 @@ F 3 "~" H 3950 3400 50  0001 C CNN
 	-1   0    0    1   
 $EndComp
 $Comp
-L Device:R R13
-U 1 1 60D63711
-P 6200 1700
-F 0 "R13" H 6130 1654 50  0000 R CNN
-F 1 "0R" H 6130 1745 50  0000 R CNN
-F 2 "Resistor_SMD:R_0603_1608Metric" V 6130 1700 50  0001 C CNN
-F 3 "~" H 6200 1700 50  0001 C CNN
-	1    6200 1700
-	-1   0    0    1   
-$EndComp
-$Comp
 L Connector_Generic:Conn_01x04 J6
 U 1 1 60D6D08D
 P 8700 4300
@@ -1078,22 +1055,6 @@ F 3 "~" H 3650 3550 50  0001 C CNN
 	1    3650 3550
 	1    0    0    -1  
 $EndComp
-$Comp
-L power:PWR_FLAG #FLG05
-U 1 1 60BED3FB
-P 6550 1550
-F 0 "#FLG05" H 6550 1625 50  0001 C CNN
-F 1 "PWR_FLAG" H 6550 1723 50  0000 C CNN
-F 2 "" H 6550 1550 50  0001 C CNN
-F 3 "~" H 6550 1550 50  0001 C CNN
-	1    6550 1550
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	6550 1550 6550 1850
-Wire Wire Line
-	6550 1850 6300 1850
-Connection ~ 6300 1850
 Wire Wire Line
 	5350 750  5700 750 
 $Comp
@@ -1301,4 +1262,16 @@ Text Label 6800 4500 0    50   ~ 0
 RATE
 Wire Wire Line
 	1050 3550 1050 4300
+$Comp
+L power:VCC #PWR022
+U 1 1 60C15EE1
+P 6200 1850
+F 0 "#PWR022" H 6200 1700 50  0001 C CNN
+F 1 "VCC" H 6217 2023 50  0000 C CNN
+F 2 "" H 6200 1850 50  0001 C CNN
+F 3 "" H 6200 1850 50  0001 C CNN
+	1    6200 1850
+	1    0    0    -1  
+$EndComp
+Connection ~ 6200 1850
 $EndSCHEMATC
