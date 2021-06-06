@@ -267,12 +267,12 @@ Wire Wire Line
 $Comp
 L power:GND #PWR020
 U 1 1 60C09EC3
-P 5700 950
-F 0 "#PWR020" H 5700 700 50  0001 C CNN
-F 1 "GND" H 5705 777 50  0000 C CNN
-F 2 "" H 5700 950 50  0001 C CNN
-F 3 "" H 5700 950 50  0001 C CNN
-	1    5700 950 
+P 5700 1200
+F 0 "#PWR020" H 5700 950 50  0001 C CNN
+F 1 "GND" H 5705 1027 50  0000 C CNN
+F 2 "" H 5700 1200 50  0001 C CNN
+F 3 "" H 5700 1200 50  0001 C CNN
+	1    5700 1200
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -289,12 +289,12 @@ $EndComp
 $Comp
 L power:VCC #PWR019
 U 1 1 60C14756
-P 5700 750
-F 0 "#PWR019" H 5700 600 50  0001 C CNN
-F 1 "VCC" H 5717 923 50  0000 C CNN
-F 2 "" H 5700 750 50  0001 C CNN
-F 3 "" H 5700 750 50  0001 C CNN
-	1    5700 750 
+P 6050 750
+F 0 "#PWR019" H 6050 600 50  0001 C CNN
+F 1 "VCC" H 6067 923 50  0000 C CNN
+F 2 "" H 6050 750 50  0001 C CNN
+F 3 "" H 6050 750 50  0001 C CNN
+	1    6050 750 
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
@@ -773,16 +773,14 @@ LED_B
 $Comp
 L Device:R R12
 U 1 1 60DC0B90
-P 4700 1000
-F 0 "R12" V 4800 1000 50  0000 C CNN
-F 1 "0R" V 4600 1000 50  0000 C CNN
-F 2 "Resistor_SMD:R_0603_1608Metric" V 4630 1000 50  0001 C CNN
-F 3 "~" H 4700 1000 50  0001 C CNN
-	1    4700 1000
+P 5900 750
+F 0 "R12" V 6000 750 50  0000 C CNN
+F 1 "0R" V 5800 750 50  0000 C CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 5830 750 50  0001 C CNN
+F 3 "~" H 5900 750 50  0001 C CNN
+	1    5900 750 
 	0    -1   -1   0   
 $EndComp
-Wire Wire Line
-	4550 1000 4150 1000
 Connection ~ 5350 1000
 Text Label 4050 4500 0    50   ~ 0
 SCK
@@ -908,8 +906,6 @@ Wire Wire Line
 	4850 1300 4850 1400
 Wire Wire Line
 	4450 1300 4850 1300
-Wire Wire Line
-	4850 1000 5350 1000
 $Comp
 L Connector_Generic:Conn_01x01 J7
 U 1 1 60F2C3CD
@@ -933,30 +929,18 @@ F 3 "~" H 10600 3150 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Connector_Generic:Conn_01x01 J3
-U 1 1 60F3305D
-P 5900 750
-F 0 "J3" H 5980 792 50  0000 L CNN
-F 1 "Batt+" H 5980 701 50  0000 L CNN
-F 2 "TestPoint:TestPoint_THTPad_1.0x1.0mm_Drill0.5mm" H 5900 750 50  0001 C CNN
-F 3 "~" H 5900 750 50  0001 C CNN
-	1    5900 750 
-	1    0    0    -1  
-$EndComp
-$Comp
 L Connector_Generic:Conn_01x01 J4
 U 1 1 60F3415B
-P 5900 950
-F 0 "J4" H 5980 992 50  0000 L CNN
-F 1 "Batt-" H 5980 901 50  0000 L CNN
-F 2 "TestPoint:TestPoint_THTPad_1.0x1.0mm_Drill0.5mm" H 5900 950 50  0001 C CNN
-F 3 "~" H 5900 950 50  0001 C CNN
-	1    5900 950 
+P 5900 1200
+F 0 "J4" H 5980 1242 50  0000 L CNN
+F 1 "Batt-" H 5980 1151 50  0000 L CNN
+F 2 "TestPoint:TestPoint_THTPad_1.0x1.0mm_Drill0.5mm" H 5900 1200 50  0001 C CNN
+F 3 "~" H 5900 1200 50  0001 C CNN
+	1    5900 1200
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
 	5350 750  5350 1000
-Connection ~ 5700 750 
 $Comp
 L Device:R R3
 U 1 1 60F7770F
@@ -1056,7 +1040,7 @@ F 3 "~" H 3650 3550 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	5350 750  5700 750 
+	5350 1000 5550 1000
 $Comp
 L power:PWR_FLAG #FLG04
 U 1 1 60BF3AF3
@@ -1068,7 +1052,6 @@ F 3 "~" H 5350 750 50  0001 C CNN
 	1    5350 750 
 	1    0    0    -1  
 $EndComp
-Connection ~ 5350 750 
 $Comp
 L power:PWR_FLAG #FLG02
 U 1 1 60BF606A
@@ -1274,4 +1257,24 @@ F 3 "" H 6200 1850 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 Connection ~ 6200 1850
+Wire Wire Line
+	4150 1000 5350 1000
+$Comp
+L Connector_Generic:Conn_01x01 J3
+U 1 1 60F3305D
+P 5900 1000
+F 0 "J3" H 5980 1042 50  0000 L CNN
+F 1 "Batt+" H 5980 951 50  0000 L CNN
+F 2 "TestPoint:TestPoint_THTPad_1.0x1.0mm_Drill0.5mm" H 5900 1000 50  0001 C CNN
+F 3 "~" H 5900 1000 50  0001 C CNN
+	1    5900 1000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5750 750  5550 750 
+Wire Wire Line
+	5550 750  5550 1000
+Connection ~ 5550 1000
+Wire Wire Line
+	5550 1000 5700 1000
 $EndSCHEMATC
