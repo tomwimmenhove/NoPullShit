@@ -11,6 +11,8 @@ DEPS := $(OBJS:.o=.d)
 CPPFLAGS = -g -DF_CPU=16000000 -Wall -Os -Werror -Wextra -mmcu=atmega328p -std=c++11 -MMD -MP
 LDFLAGS  = -Wl,-Map,$(BUILD_DIR)/$(TARGET_NAME).map
 
+all: $(BUILD_DIR)/$(TARGET_NAME).hex
+
 $(BUILD_DIR)/$(TARGET_NAME).hex: $(BUILD_DIR)/$(TARGET_NAME).elf
 	avr-objcopy -j .text -j .data -O ihex $(BUILD_DIR)/$(TARGET_NAME).elf $(BUILD_DIR)/$(TARGET_NAME).hex
 
