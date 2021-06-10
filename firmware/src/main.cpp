@@ -100,28 +100,35 @@ void update_baseline(int32_t& value)
 	value = 0;
 }
 
+enum e_main_state
+{
+	standby,
+	normal,
+	wait_for_depress,
+	wait_for_press,
+	config
+};
+
 int main()
 {
-	int32_t last_value;
-	bool was_standby = true;
+	e_main_state mainstate = e_main_state::standby;
+	int32_t last_value = 0;
 	int32_t new_pull_threshold;
 	uint16_t blink_timer = 0;
 	int32_t pull_threshold = MIN_PULL_FORCE;
-	bool alert = false;
 	int8_t alert_count = 0;
 	int16_t config_timer = 0;
 	int16_t alert_timer = 0;
 	int16_t update_baseline_timer = 0;
-	bool pulling = false;
 
 	// set everything unused to outputs
 	DDRB = 0xff &
-		~(1 << 3);  // PB3 is PWM out;
+			~(1 << 3);  // PB3 is PWM out;
 	DDRC = 0xff &
-		~(1 << 0);  // ADC0 is batt monitor
+			~(1 << 0);  // ADC0 is batt monitor
 	DDRD = 0xff &
-		~(1 << 0) & // PD0 = RX
-		~(1 << 3);  // PD3 is DOUT
+			~(1 << 0) & // PD0 = RX
+			~(1 << 3);  // PD3 is DOUT
 
 	//PORTD |= (1 << 1); // TX
 	PORTD &= ~(1 << 1); // TX
@@ -166,112 +173,135 @@ int main()
 
 		wdt_reset();
 
-		// If we're in standby, we just got woken up by the watchdog. Wake up the scale and go back to sleep
-		if (was_standby && !audio.is_beeping())
-		{
-			scale.wake_up();
-			deep_sleep();
-		}
+		batt_monitor(mainstate == e_main_state::standby);
 
-		batt_monitor(was_standby);
+		if (mainstate == e_main_state::standby)
+		{
+			if (!audio.is_beeping())
+			{
+				scale.wake_up();
+				deep_sleep();
+			}
+		}
 
 		int32_t value = scale.read() - baseline;
 
-		if (!was_standby)
+		// Main state machine
+		switch(mainstate)
 		{
-			if (config_timer)
+		case e_main_state::standby:
+			// Go away; I'm sleeping
+			break;
+
+		case e_main_state::normal:
+			// Check if the dog started or stopped pulling
+			if (!audio.is_beeping())
 			{
-				config_timer--;
-
-				/* Use the maximum force within the configuration period */
-				if (value > new_pull_threshold)
+				if (value > pull_threshold + HIST_FORCE)
 				{
-					new_pull_threshold = value;    
-				}
-
-				if (!config_timer)
-				{
-					if (new_pull_threshold > MIN_PULL_FORCE)
-					{
-						pull_threshold = new_pull_threshold;
-						// Let the user know the time is up
-						audio.alert();
-						_delay_ms(100);
-						audio.alert();
-						_delay_ms(100);
-						audio.alert();
-
-						// Save the configured value in EEPROM
-						eeprom_write_dword((uint32_t*) EE_FORCE_ADDRESS, pull_threshold);
-					}
+					audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
 				}
 			}
 			else
 			{
-				if (!audio.is_beeping())
+				if (value < pull_threshold - HIST_FORCE)
 				{
-					if (value > pull_threshold + HIST_FORCE)
-					{
-						audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
-						pulling = true;
-					}
+					audio.beep_disable();
 				}
-				else
-				{
-					if (value < pull_threshold - HIST_FORCE)
-					{
-						audio.beep_disable();
-						pulling = false;
-					}
-				}    
 			}
-		}
 
-		if (alert_timer)
-		{
-			alert_timer--;
-			if (!alert_timer)
+			// Check if the user pressed the load cell
+			if (value < REVERSE_FORCE - HIST_FORCE)
 			{
+				audio.alert();
+				mainstate = e_main_state::wait_for_depress;
 				alert_count = 0;
 			}
-		}
 
-		if (!config_timer && value < REVERSE_FORCE)
-		{
-			alert_timer = ALERT_TIMEOUT;
-			if (!alert)
+			break;
+
+		case e_main_state::wait_for_depress:
+			// Wait until the user releases the load cell
+			if (value > REVERSE_FORCE + HIST_FORCE)
 			{
-				alert = true;
+				mainstate = e_main_state::wait_for_press;
+				alert_timer = ALERT_TIMEOUT;
+			}
 
-				if (++alert_count <= 2)
-				{
-					// Single beep to let the user know the push was registered
-					audio.alert();
-				}
-				else
-				{
-					alert_count = 0;
+			break;
 
+		case e_main_state::wait_for_press:
+			// Wait for the user to press the load cell again
+			if (value < REVERSE_FORCE - HIST_FORCE)
+			{
+				alert_count++;
+
+				// After being pressed 3 times quickly
+				if (alert_count == 2)
+				{
+					// 3 quick beeps
 					audio.alert();
 					_delay_ms(100);
 					audio.alert();
 					_delay_ms(100);
 					audio.alert();
 
+					// And go to config mode
 					config_timer = CONFIG_TIME;
-					new_pull_threshold = 0;
+					new_pull_threshold = MIN_PULL_FORCE;
+
+					mainstate = e_main_state::config;
+
+					break;
+				}
+
+				audio.alert();
+				mainstate = e_main_state::wait_for_depress;
+			}
+			else
+			{
+				alert_timer--;
+				if (alert_timer == 0)
+				{
+					mainstate = e_main_state::normal;
 				}
 			}
-		}
-		else
-		{
-			alert = false;
+			break;
+
+		case e_main_state::config:
+			/* Use the maximum force within the configuration period */
+			if (value > new_pull_threshold)
+			{
+				new_pull_threshold = value;
+			}
+
+			// Until we're out of time
+			config_timer--;
+			if (config_timer == 0)
+			{
+				if (new_pull_threshold > MIN_PULL_FORCE)
+				{
+					pull_threshold = new_pull_threshold;
+					// Let the user know the time is up
+					audio.alert();
+					_delay_ms(100);
+					audio.alert();
+					_delay_ms(100);
+					audio.alert();
+
+					// Save the configured value in EEPROM
+					eeprom_write_dword((uint32_t*) EE_FORCE_ADDRESS, pull_threshold);
+				}
+
+				mainstate = e_main_state::normal;
+			}
+			break;
 		}
 
 		bool standby = stdby.check(value, last_value);
 
 		// We entered stand by mode
-		if (standby != was_standby && standby)
+		if (mainstate != e_main_state::standby && standby)
 		{
 #			ifdef DEBUG
 			ser.puts("Going to standby\n");
@@ -288,10 +318,12 @@ int main()
 
 			LED_PORT &= ~LED_MASK;
 			blink_timer = 0;
+
+			mainstate = e_main_state::standby;
 		}
 
 		// We returned from stand by mode
-		if (standby != was_standby && !standby)
+		if (mainstate == e_main_state::standby && !standby)
 		{
 #			ifdef DEBUG
 			ser.puts("Activity! Waking up from standby\n");
@@ -301,15 +333,16 @@ int main()
 #			ifndef ALWAYS_80HZ
 			scale.set_rate(false); // 10Hz default rate
 #			endif
+
+			mainstate = e_main_state::normal;
 		}
 
-		if (standby)
+		if (mainstate == e_main_state::standby)
 		{
 			scale.sleep();
 
 			if (update_baseline_timer++ >= UPDATE_BASELINE_AFTER)
 			{
-				pulling = false;
 				update_baseline_timer = 0;
 				update_baseline(value);
 			}
@@ -339,7 +372,6 @@ int main()
 		}
 
 		last_value = value;
-		was_standby = standby;
 	}
 	return 0;
 }
@@ -351,7 +383,6 @@ ISR(WDT_vect)
 	//ser.flush();
 #	endif
 }
-
 
 /* DOUT going low vector */
 ISR (INT1_vect) { }
