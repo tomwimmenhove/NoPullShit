@@ -12,15 +12,7 @@
 #include "sleepy_adc.h"
 #include "serial.h"
 
-static int32_t pull_threshold = MIN_PULL_FORCE;
-static bool alert = false;
-static int8_t alert_count = 0;
-static int16_t config_timer = 0;
-static int16_t alert_timer = 0;
 static int32_t baseline = 0;
-static int16_t update_baseline_timer = 0;
-
-static bool pulling = false;
 static bool dying = false;
 
 static pwm_audio audio;
@@ -110,10 +102,17 @@ void update_baseline(int32_t& value)
 
 int main()
 {
-	static int32_t last_value;
-	static bool was_standby = true;
-	static int32_t new_pull_threshold;
-	static uint16_t blink_timer = 0;
+	int32_t last_value;
+	bool was_standby = true;
+	int32_t new_pull_threshold;
+	uint16_t blink_timer = 0;
+	int32_t pull_threshold = MIN_PULL_FORCE;
+	bool alert = false;
+	int8_t alert_count = 0;
+	int16_t config_timer = 0;
+	int16_t alert_timer = 0;
+	int16_t update_baseline_timer = 0;
+	bool pulling = false;
 
 	// set everything unused to outputs
 	DDRB = 0xff &
