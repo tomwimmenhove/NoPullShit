@@ -8,6 +8,7 @@ static bool beeping = false;
 static volatile int8_t wave_pos = 0;
 static const uint8_t* wave = nullptr;
 static uint8_t wave_size = 0;
+static uint8_t volume = 255;
 
 void pwm_audio::init()
 {
@@ -48,9 +49,12 @@ void pwm_audio::beep_disable()
 
 void pwm_audio::alert()
 {
+	uint8_t tmp_volume = volume;
+	volume = 255;
 	beep(wave_alert, sizeof(wave_alert));
 	_delay_ms(20);
 	beep_disable();
+	volume = tmp_volume;
 }
 
 bool pwm_audio::is_beeping()
@@ -58,9 +62,19 @@ bool pwm_audio::is_beeping()
 	return beeping;
 }
 
+void pwm_audio::set_volume(uint8_t volume)
+{
+	::volume = volume;
+}
+
+uint8_t pwm_audio::get_volume()
+{
+	return volume;
+}
+
 ISR(TIMER2_COMPA_vect)
 {
-	OCR2A = pgm_read_byte(&wave[wave_pos++]);
+	OCR2A = (pgm_read_byte(&wave[wave_pos++]) * volume) >> 8;
 
 	if (wave_pos == wave_size)
 	{

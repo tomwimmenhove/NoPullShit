@@ -5,6 +5,12 @@
 
 #define BEEP_WAVE wave_sine
 
+// Minimum volume (0..255) when pulling just over the maximum pull force (255 effectively disables variable volume)
+#define MIN_VOLUME		(128)
+
+// Fraction of the maximum pull force over which to go from minimum to maximum volume (1..255 -> 0..100%)
+#define MAX_OVERPULL	(128)
+
 #define ALWAYS_80HZ
 #define UPDATE_BASELINE_ON_STANDBY
 

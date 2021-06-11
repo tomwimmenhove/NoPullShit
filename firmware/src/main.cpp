@@ -100,6 +100,21 @@ void update_baseline(int32_t& value)
 	value = 0;
 }
 
+uint8_t calculate_colume(int32_t value, int32_t threshold)
+{
+	int32_t volume = (255 - MIN_VOLUME) * (value - threshold) * 256 / (threshold * MAX_OVERPULL / 256) / 256;
+	if (volume < MIN_VOLUME)
+	{
+		return MIN_VOLUME;
+	}
+	else if (volume > 255)
+	{
+		return 255;
+	}
+
+	return volume;
+}
+
 enum e_main_state
 {
 	standby,
@@ -199,6 +214,8 @@ int main()
 			{
 				if (value > pull_threshold + HIST_FORCE)
 				{
+					audio.set_volume(calculate_colume(value, pull_threshold));
+
 					audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
 				}
 			}
@@ -207,6 +224,10 @@ int main()
 				if (value < pull_threshold - HIST_FORCE)
 				{
 					audio.beep_disable();
+				}
+				else
+				{
+					audio.set_volume(calculate_colume(value, pull_threshold));
 				}
 			}
 

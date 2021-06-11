@@ -14,6 +14,8 @@ public:
 	void beep_disable();
 	void alert();
 	bool is_beeping();
+	void set_volume(uint8_t volume);
+	uint8_t get_volume();
 };
 
 #endif /* PWM_AUDIO_H */
