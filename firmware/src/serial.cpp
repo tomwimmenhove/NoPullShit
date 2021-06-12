@@ -3,6 +3,8 @@
 
 #include "serial.h"
 
+#ifdef DEBUG
+
 serial::serial()
 {   
 	UCSR0A = 1 << U2X0;
@@ -58,3 +60,6 @@ void serial::flush()
 	while (!(UCSR0A & (1<<TXC0)))
 	{ }
 }
+
+#endif /* DEBUG */
+

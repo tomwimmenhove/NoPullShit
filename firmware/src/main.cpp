@@ -10,14 +10,19 @@
 #include "waves.h"
 #include "standby.h"
 #include "sleepy_adc.h"
-#include "serial.h"
+#ifdef DEBUG
+#	include "serial.h"
+#endif
 
 static int32_t baseline = 0;
 static bool dying = false;
 
 static hx711 scale(&DOUT_PIN, DOUT_MASK, &SCK_PORT, SCK_MASK, &RATE_PORT, RATE_MASK);
 static standby stdby;
+
+#ifdef DEBUG
 static serial ser;
+#endif
 
 void deep_sleep()
 {
