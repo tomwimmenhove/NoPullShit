@@ -100,7 +100,7 @@ void update_baseline(int32_t& value)
 	value = 0;
 }
 
-uint8_t calculate_colume(int32_t value, int32_t threshold)
+uint8_t calculate_volume(int32_t value, int32_t threshold)
 {
 	int32_t volume = MIN_VOLUME + (255 - MIN_VOLUME) * (value - threshold) / (threshold * MAX_OVERPULL / 256);
 	if (volume < MIN_VOLUME)
@@ -164,7 +164,7 @@ int main()
 	SCK_PORT &= ~SCK_MASK;  // Set SCK low to initiate conversion
 	scale.set_rate(true); // 80Hz
 
-	EICRA |= (1 << ISC11);	// INT1 on falling egde of DOUT
+	EICRA |= (1 << ISC11);	// INT1 on falling edge of DOUT
 	EIMSK |= (1 << INT1);	// Turns on INT1
 
 	// Disable ADC
@@ -180,7 +180,7 @@ int main()
 	// Main loop
 	for(;;)
 	{
-		// Go to sleep, unless we're currenly beeping. We will wake up when DOUT goes low. This means a conversion is ready.
+		// Go to sleep, unless we're currently beeping. We will wake up when DOUT goes low. This means a conversion is ready.
 		if (!audio.is_beeping())
 		{
 			deep_sleep();
@@ -214,8 +214,7 @@ int main()
 			{
 				if (value > pull_threshold + HIST_FORCE)
 				{
-					audio.set_volume(calculate_colume(value, pull_threshold));
-
+					audio.set_volume(calculate_volume(value, pull_threshold));
 					audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
 				}
 			}
@@ -227,7 +226,7 @@ int main()
 				}
 				else
 				{
-					audio.set_volume(calculate_colume(value, pull_threshold));
+					audio.set_volume(calculate_volume(value, pull_threshold));
 				}
 			}
 
@@ -330,7 +329,7 @@ int main()
 #			endif
 
 #			ifndef ALWAYS_80HZ
-			scale.set_rate(true); // 80Hz rate (50ms settling time, saves mucho power
+			scale.set_rate(true); // 80Hz rate (50ms settling time, saves mucho power)
 #			endif
 #			ifdef UPDATE_BASELINE_ON_STANDBY
 			update_baseline(value);
