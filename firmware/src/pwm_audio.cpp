@@ -47,12 +47,15 @@ void pwm_audio::beep_disable()
 	}
 }
 
-void pwm_audio::alert()
+void pwm_audio::alert(int ms)
 {
 	uint8_t tmp_volume = volume;
 	volume = 255;
 	beep(wave_alert, sizeof(wave_alert));
-	_delay_ms(20);
+	while (ms--)
+	{
+		_delay_ms(1);
+	}
 	beep_disable();
 	volume = tmp_volume;
 }

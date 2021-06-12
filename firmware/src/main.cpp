@@ -233,7 +233,7 @@ int main()
 			// Check if the user pressed the load cell
 			if (value < REVERSE_FORCE - HIST_FORCE)
 			{
-				audio.alert();
+				audio.alert(20);
 				mainstate = e_main_state::wait_for_depress;
 				alert_count = 0;
 			}
@@ -260,14 +260,14 @@ int main()
 				if (alert_count == 2)
 				{
 					// 3 quick beeps
-					audio.alert();
+					audio.alert(20);
 					_delay_ms(100);
-					audio.alert();
+					audio.alert(20);
 					_delay_ms(100);
-					audio.alert();
+					audio.alert(20);
 
 					// And go to config mode
-					config_timer = CONFIG_TIME;
+					config_timer = 0;
 					new_pull_threshold = MIN_PULL_FORCE;
 
 					mainstate = e_main_state::config;
@@ -275,7 +275,7 @@ int main()
 					break;
 				}
 
-				audio.alert();
+				audio.alert(20);
 				mainstate = e_main_state::wait_for_depress;
 			}
 			else
@@ -295,26 +295,58 @@ int main()
 				new_pull_threshold = value;
 			}
 
-			// Until we're out of time
-			config_timer--;
-			if (config_timer == 0)
+			config_timer++;
+
+#ifdef		CONFIG_BEEP_TIME
+			if (config_timer % CONFIG_BEEP_TIME == 0)
+			{
+				audio.alert(5);
+			}
+#endif
+
+			// Until we're out of time...
+			if (config_timer >= CONFIG_TIME)
+			{
+#ifndef			CONFIG_BEEP_TIME
+				audio.alert(200);
+				_delay_ms(100);
+				audio.alert(200);
+				_delay_ms(100);
+#endif
+
+				mainstate = e_main_state::normal;
+
+				break;
+			}
+
+			// ...or the user stopped it by pressing again
+			if (value < REVERSE_FORCE - HIST_FORCE)
 			{
 				if (new_pull_threshold > MIN_PULL_FORCE)
 				{
 					pull_threshold = new_pull_threshold;
-					// Let the user know the time is up
-					audio.alert();
+
+					// Let the user know the new the new settings is saved
+					audio.alert(20);
 					_delay_ms(100);
-					audio.alert();
+					audio.alert(20);
 					_delay_ms(100);
-					audio.alert();
+					audio.alert(20);
 
 					// Save the configured value in EEPROM
 					eeprom_write_dword((uint32_t*) EE_FORCE_ADDRESS, pull_threshold);
 				}
+				else
+				{
+					audio.alert(200);
+					_delay_ms(100);
+					audio.alert(200);
+					_delay_ms(100);
+				}
 
 				mainstate = e_main_state::normal;
 			}
+
 			break;
 		}
 

@@ -12,7 +12,7 @@ public:
 	void beep(const uint8_t* wave, uint8_t len);
 	void beep_enable();
 	void beep_disable();
-	void alert();
+	void alert(int ms);
 	bool is_beeping();
 	void set_volume(uint8_t volume);
 	uint8_t get_volume();
