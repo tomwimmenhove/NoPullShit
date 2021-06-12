@@ -5,7 +5,7 @@
 #include <avr/eeprom.h>
 
 #include "config.h"
-#include "pwm_audio.h"
+#include "audio.h"
 #include "hx711.h"
 #include "waves.h"
 #include "standby.h"
@@ -15,7 +15,6 @@
 static int32_t baseline = 0;
 static bool dying = false;
 
-static pwm_audio audio;
 static hx711 scale(&DOUT_PIN, DOUT_MASK, &SCK_PORT, SCK_MASK, &RATE_PORT, RATE_MASK);
 static standby stdby;
 static serial ser;
@@ -170,7 +169,7 @@ int main()
 	// Disable ADC
 	ADCSRA &= ~(1 << 7);
 
-	audio.init();
+	audio::init();
 
 	watchdog_start((1 << WDP2)  | (1 << WDP0) | (1 << WDP1)); // 1 second
 
@@ -181,7 +180,7 @@ int main()
 	for(;;)
 	{
 		// Go to sleep, unless we're currently beeping. We will wake up when DOUT goes low. This means a conversion is ready.
-		if (!audio.is_beeping())
+		if (!audio::is_enabled())
 		{
 			deep_sleep();
 		}
@@ -192,7 +191,7 @@ int main()
 
 		if (mainstate == e_main_state::standby)
 		{
-			if (!audio.is_beeping())
+			if (!audio::is_enabled())
 			{
 				scale.wake_up();
 				deep_sleep();
@@ -210,30 +209,30 @@ int main()
 
 		case e_main_state::normal:
 			// Check if the dog started or stopped pulling
-			if (!audio.is_beeping())
+			if (!audio::is_enabled())
 			{
 				if (value > pull_threshold + HIST_FORCE)
 				{
-					audio.set_volume(calculate_volume(value, pull_threshold));
-					audio.beep(BEEP_WAVE, sizeof(BEEP_WAVE));
+					audio::set_volume(calculate_volume(value, pull_threshold));
+					audio::play(BEEP_WAVE, sizeof(BEEP_WAVE));
 				}
 			}
 			else
 			{
 				if (value < pull_threshold - HIST_FORCE)
 				{
-					audio.beep_disable();
+					audio::disable();
 				}
 				else
 				{
-					audio.set_volume(calculate_volume(value, pull_threshold));
+					audio::set_volume(calculate_volume(value, pull_threshold));
 				}
 			}
 
 			// Check if the user pressed the load cell
 			if (value < REVERSE_FORCE - HIST_FORCE)
 			{
-				audio.alert(20);
+				audio::alert(20);
 				mainstate = e_main_state::wait_for_depress;
 				alert_count = 0;
 			}
@@ -260,11 +259,11 @@ int main()
 				if (alert_count == 2)
 				{
 					// 3 quick beeps
-					audio.alert(20);
+					audio::alert(20);
 					_delay_ms(100);
-					audio.alert(20);
+					audio::alert(20);
 					_delay_ms(100);
-					audio.alert(20);
+					audio::alert(20);
 
 					// And go to config mode
 					config_timer = 0;
@@ -275,7 +274,7 @@ int main()
 					break;
 				}
 
-				audio.alert(20);
+				audio::alert(20);
 				mainstate = e_main_state::wait_for_depress;
 			}
 			else
@@ -300,7 +299,7 @@ int main()
 #ifdef		CONFIG_BEEP_TIME
 			if (config_timer % CONFIG_BEEP_TIME == 0)
 			{
-				audio.alert(5);
+				audio::alert(5);
 			}
 #endif
 
@@ -308,9 +307,9 @@ int main()
 			if (config_timer >= CONFIG_TIME)
 			{
 #ifndef			CONFIG_BEEP_TIME
-				audio.alert(200);
+				audio::alert(200);
 				_delay_ms(100);
-				audio.alert(200);
+				audio::alert(200);
 				_delay_ms(100);
 #endif
 
@@ -327,20 +326,20 @@ int main()
 					pull_threshold = new_pull_threshold;
 
 					// Let the user know the new the new settings is saved
-					audio.alert(20);
+					audio::alert(20);
 					_delay_ms(100);
-					audio.alert(20);
+					audio::alert(20);
 					_delay_ms(100);
-					audio.alert(20);
+					audio::alert(20);
 
 					// Save the configured value in EEPROM
 					eeprom_write_dword((uint32_t*) EE_FORCE_ADDRESS, pull_threshold);
 				}
 				else
 				{
-					audio.alert(200);
+					audio::alert(200);
 					_delay_ms(100);
-					audio.alert(200);
+					audio::alert(200);
 					_delay_ms(100);
 				}
 
@@ -366,7 +365,7 @@ int main()
 #			ifdef UPDATE_BASELINE_ON_STANDBY
 			update_baseline(value);
 #			endif
-			audio.beep_disable();
+			audio::disable();
 
 			LED_PORT &= ~LED_MASK;
 			blink_timer = 0;
