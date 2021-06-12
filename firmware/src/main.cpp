@@ -102,7 +102,7 @@ void update_baseline(int32_t& value)
 
 uint8_t calculate_colume(int32_t value, int32_t threshold)
 {
-	int32_t volume = (255 - MIN_VOLUME) * (value - threshold) * 256 / (threshold * MAX_OVERPULL / 256) / 256;
+	int32_t volume = MIN_VOLUME + (255 - MIN_VOLUME) * (value - threshold) / (threshold * MAX_OVERPULL / 256);
 	if (volume < MIN_VOLUME)
 	{
 		return MIN_VOLUME;
