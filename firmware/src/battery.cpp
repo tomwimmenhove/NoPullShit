@@ -2,7 +2,7 @@
  * battery.cpp
  *
  *  Created on: Jun 14, 2021
- *      Author: tom
+ *      Author: Tom Wimmenhove
  */
 
 #include <avr/io.h>

@@ -2,7 +2,7 @@
  * battery.h
  *
  *  Created on: Jun 14, 2021
- *      Author: tom
+ *      Author: Tom Wimmenhove
  */
 
 #ifndef SRC_BATTERY_H_

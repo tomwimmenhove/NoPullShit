@@ -1,3 +1,10 @@
+/*
+ * hx711.h
+ *
+ *  Created on: Jun 14, 2021
+ *      Author: Tom Wimmenhove
+ */
+
 #ifndef HX711_H
 #define HX711_H
 

@@ -1,3 +1,10 @@
+/*
+ * waves.h
+ *
+ *  Created on: Jun 14, 2021
+ *      Author: Tom Wimmenhove
+ */
+
 #ifndef WAVES_H
 #define WAVES_H
 

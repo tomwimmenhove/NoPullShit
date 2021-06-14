@@ -1,3 +1,10 @@
+/*
+ * waves.cpp
+ *
+ *  Created on: Jun 14, 2021
+ *      Author: Tom Wimmenhove
+ */
+
 #include "waves.h"
 
 /*

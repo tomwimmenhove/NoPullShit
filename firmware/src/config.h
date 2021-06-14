@@ -1,3 +1,10 @@
+/*
+ * config.h
+ *
+ *  Created on: Jun 14, 2021
+ *      Author: Tom Wimmenhove
+ */
+
 #ifndef CONFIG_H
 #define CONFIG_H
 

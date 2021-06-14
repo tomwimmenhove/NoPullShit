@@ -1,3 +1,10 @@
+/*
+ * main.cpp
+ *
+ *  Created on: Jun 14, 2021
+ *      Author: Tom Wimmenhove
+ */
+
 #include <avr/sleep.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>

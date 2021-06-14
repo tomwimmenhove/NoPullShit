@@ -1,3 +1,10 @@
+/*
+ * hx711.cpp
+ *
+ *  Created on: Jun 14, 2021
+ *      Author: Tom Wimmenhove
+ */
+
 #include <avr/wdt.h>
 #include <util/delay.h>
 #include "hx711.h"

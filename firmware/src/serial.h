@@ -1,3 +1,10 @@
+/*
+ * serial.h
+ *
+ *  Created on: Jun 14, 2021
+ *      Author: Tom Wimmenhove
+ */
+
 #ifndef SERIAL_H
 #define SERIAL_H
 
