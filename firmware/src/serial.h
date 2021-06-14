@@ -8,12 +8,12 @@
 class serial
 {
 public:
-	serial();
+	static void init();
 
-	void putc(char c);
-	void puts(const char* s);
-	void puti(int32_t x);
-	void flush();
+	static void putc(char c);
+	static void puts(const char* s);
+	static void puti(int32_t x);
+	static void flush();
 };
 
 #endif /* DEBUG */

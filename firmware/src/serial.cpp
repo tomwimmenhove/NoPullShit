@@ -5,7 +5,7 @@
 
 #ifdef DEBUG
 
-serial::serial()
+void serial::init()
 {   
 	UCSR0A = 1 << U2X0;
 

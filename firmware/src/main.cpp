@@ -1,4 +1,3 @@
-#include <avr/wdt.h>
 #include <avr/sleep.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -9,96 +8,24 @@
 #include "hx711.h"
 #include "waves.h"
 #include "standby.h"
-#include "sleepy_adc.h"
+#include "battery.h"
+#include "watchdog.h"
 #ifdef DEBUG
 #	include "serial.h"
 #endif
 
 static int32_t baseline = 0;
-static bool dying = false;
 
 static hx711 scale(&DOUT_PIN, DOUT_MASK, &SCK_PORT, SCK_MASK, &RATE_PORT, RATE_MASK);
 static standby stdby;
 
-#ifdef DEBUG
-static serial ser;
-#endif
-
-void deep_sleep()
-{
-	// Disable sleep - this enables the sleep mode
-	SMCR = (1 << 2); // power down mode
-	SMCR |= 1;        // enable sleep
-
-	// BOD disable - this must be called right before the sleep instruction
-	cli();
-	MCUCR |= (3 << 5);                      // set both BODS and BODSE at the same time
-	MCUCR = (MCUCR & ~(1 << 5)) | (1 << 6); // then set the BODS bit and clear the BODSE bit at the same time
-	sei();
-
-	__asm__ __volatile__ ( "sleep" "\n\t" :: );
-
-	SMCR &= ~1; // disable sleep
-}
-
-void watchdog_start(uint8_t wdp)
-{
-	cli();
-	_WD_CONTROL_REG = (1 << WDCE) | (1 << WDE);
-	_WD_CONTROL_REG = (1 << WDIE) | wdp;
-	sei();
-}
-
-void batt_monitor(bool sleep)
-{
-	bool dead = false;
-	while (true)
-	{
-		BATT_PLDWN_PORT &= ~BATT_PLDWN_MASK; // Enable batt monitor
-		int16_t batt = getReading(0, sleep);
-		BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Disable batt monitor
-
-		dying = batt < BATT_DYING;
-
-		if (batt >= dead ? BATT_WAKE_AT : BATT_COMA_BELOW)
-		{
-			break;
-		}
-
-		// Battery too low. Go to sleep.
-		if (!dead)
-		{
-#			ifdef DEBUG
-			ser.puts("Battery too low. Going into coma\n");
-			ser.flush();
-#			endif
-			dead = true;
-			watchdog_start((1 << WDP3) | (1 << WDP0)); // 8 seconds
-			//watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
-		}
-		scale.sleep();
-		_delay_us(60);
-		deep_sleep();
-		wdt_reset();
-	}
-
-	if (dead)
-	{
-#		ifdef DEBUG
-		ser.puts("We're back\n");
-		ser.flush();
-#		endif
-		watchdog_start((1 << WDP2) | (1 << WDP1)); // 1 second
-	}
-}
-
 void update_baseline(int32_t& value)
 {
 #	ifdef DEBUG
-	ser.puts("Updating baseline: ");
-	ser.puti(value + baseline);
-	ser.putc('\n');
-	ser.flush();
+	serial::puts("Updating baseline: ");
+	serial::puti(value + baseline);
+	serial::putc('\n');
+	serial::flush();
 #	endif
 	baseline = value + baseline;
 	value = 0;
@@ -128,6 +55,11 @@ enum e_main_state
 	config
 };
 
+void on_sleep()
+{
+	scale.sleep();
+}
+
 int main()
 {
 	e_main_state mainstate = e_main_state::standby;
@@ -154,8 +86,9 @@ int main()
 	BATT_PLDWN_PORT |= BATT_PLDWN_MASK; // Batt monitor disable
 
 #	ifdef DEBUG
-	ser.puts("Reset\n");
-	ser.flush();
+	serial::init();
+	serial::puts("Reset\n");
+	serial::flush();
 #	endif
 
 	// Read the configured force from the EEPROM
@@ -176,7 +109,7 @@ int main()
 
 	audio::init();
 
-	watchdog_start((1 << WDP2)  | (1 << WDP0) | (1 << WDP1)); // 1 second
+	watchdog::set((1 << WDP2)  | (1 << WDP0) | (1 << WDP1)); // 1 second
 
 	// Make sure there's at least one transition (DOUT falling) to get shit going
 	baseline = scale.read();
@@ -187,19 +120,19 @@ int main()
 		// Go to sleep, unless we're currently beeping. We will wake up when DOUT goes low. This means a conversion is ready.
 		if (!audio::is_enabled())
 		{
-			deep_sleep();
+			watchdog::deep_sleep();
 		}
 
 		wdt_reset();
 
-		batt_monitor(mainstate == e_main_state::standby);
+		battery::check(mainstate == e_main_state::standby, &on_sleep);
 
 		if (mainstate == e_main_state::standby)
 		{
 			if (!audio::is_enabled())
 			{
 				scale.wake_up();
-				deep_sleep();
+				watchdog::deep_sleep();
 			}
 		}
 
@@ -360,8 +293,8 @@ int main()
 		if (mainstate != e_main_state::standby && standby)
 		{
 #			ifdef DEBUG
-			ser.puts("Going to standby\n");
-			ser.flush();
+			serial::puts("Going to standby\n");
+			serial::flush();
 #			endif
 
 #			ifndef ALWAYS_80HZ
@@ -382,8 +315,8 @@ int main()
 		if (mainstate == e_main_state::standby && !standby)
 		{
 #			ifdef DEBUG
-			ser.puts("Activity! Waking up from standby\n");
-			ser.flush();
+			serial::puts("Activity! Waking up from standby\n");
+			serial::flush();
 #			endif
 
 #			ifndef ALWAYS_80HZ
@@ -416,7 +349,7 @@ int main()
 				LED_PORT &= ~LED_MASK;
 			}
 
-			uint16_t blink_interval = dying ? BLINK_INTERVAL_DYING : BLINK_INTERVAL;
+			uint16_t blink_interval = battery::is_dying() ? BLINK_INTERVAL_DYING : BLINK_INTERVAL;
 			if (blink_timer >= blink_interval)
 			{      
 				blink_timer = 0;
@@ -430,14 +363,6 @@ int main()
 		last_value = value;
 	}
 	return 0;
-}
-
-ISR(WDT_vect)
-{
-#	ifdef DEBUG
-	//ser.puts("Watchdog Interrupt\n");
-	//ser.flush();
-#	endif
 }
 
 /* DOUT going low vector */
