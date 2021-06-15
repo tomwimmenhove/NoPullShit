@@ -62,11 +62,6 @@ enum e_main_state
 	config
 };
 
-void on_sleep()
-{
-	scale.sleep();
-}
-
 int main()
 {
 	e_main_state mainstate = e_main_state::standby;
@@ -132,7 +127,7 @@ int main()
 
 		wdt_reset();
 
-		battery::check(mainstate == e_main_state::standby, &on_sleep);
+		battery::check(mainstate == e_main_state::standby, [] () { scale.sleep(); } );
 
 		if (mainstate == e_main_state::standby)
 		{
