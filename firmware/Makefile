@@ -2,13 +2,15 @@ TARGET_NAME = main
 BUILD_DIR = build
 SRC_DIRS = src
 CPP = avr-g++
+DEVICE = atmega328p
 THE_DUDE = avrdude
+THE_DUDEARGS = -q -p$(DEVICE) -cusbasp -Pusb
 
 SRCS := $(shell find $(SRC_DIRS) -name '*.cpp')
 OBJS := $(SRCS:%=$(BUILD_DIR)/%.o)
 DEPS := $(OBJS:.o=.d)
 
-CPPFLAGS = -g -DF_CPU=16000000 -Wall -Os -Werror -Wextra -mmcu=atmega328p -std=c++11 -MMD -MP
+CPPFLAGS = -g -DF_CPU=16000000 -Wall -Os -Werror -Wextra -mmcu=$(DEVICE) -std=c++11 -MMD -MP
 LDFLAGS  = -Wl,-Map,$(BUILD_DIR)/$(TARGET_NAME).map
 
 all: $(BUILD_DIR)/$(TARGET_NAME).hex
@@ -20,7 +22,7 @@ $(BUILD_DIR)/$(TARGET_NAME).elf: $(OBJS)
 	$(CPP) $(LDFLAGS) $(CPPFLAGS) $(OBJS) -o $(BUILD_DIR)/$(TARGET_NAME).elf
 
 flash: $(BUILD_DIR)/$(TARGET_NAME).hex
-	$(THE_DUDE) -q -q -patmega328p -cusbasp -Pusb -Uflash:w:$(BUILD_DIR)/$(TARGET_NAME).hex
+	$(THE_DUDE) $(THE_DUDEARGS) -Uflash:w:$(BUILD_DIR)/$(TARGET_NAME).hex
 
 $(BUILD_DIR)/%.cpp.o: %.cpp
 	$(MKDIR_P) $(dir $@)
