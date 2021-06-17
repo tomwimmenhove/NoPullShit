@@ -34,7 +34,6 @@
 #define BATT_WAKE_AT				(500)
 
 #define BLINK_INTERVAL 				(RATE * 2)
-#define BLINK_INTERVAL_DYING		(RATE / 2)
 #define BLINK_TIME					(RATE / 40)
 
 #define CONFIG_TIME					(5 * RATE)
@@ -48,8 +47,18 @@
 #define MIN_PULL_FORCE				(10000)
 
 // Pin definitions:
-#define LED_PORT PORTB
-#define LED_MASK (1 << PINB5)
+#define LEDA_PORT PORTD
+#define LEDA_MASK (1 << PIND5)
+#define LEDB_PORT PORTD
+#define LEDB_MASK (1 << PIND6)
+
+#define CHRG_PIN PINC
+#define CHRG_PORT PORTC
+#define CHRG_MASK (1 << PINC3)
+
+#define STDBY_PIN PINC
+#define STDBY_PORT PORTC
+#define STDBY_MASK (1 << PINC2)
 
 #define RATE_PORT PORTD
 #define RATE_MASK (1 << PIND2)

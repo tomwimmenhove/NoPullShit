@@ -15,6 +15,9 @@ public:
 	static void check(bool sleep, void(*on_sleep)());
 	static bool is_dying() { return dying; }
 
+	static bool is_charging();
+	static bool is_standby();
+
 private:
 	static int16_t getReading (const uint8_t port, bool sleep);
 

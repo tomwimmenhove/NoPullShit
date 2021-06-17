@@ -62,6 +62,26 @@ enum e_main_state
 	config
 };
 
+void led_off()
+{
+	LEDA_PORT &= ~LEDA_MASK;
+	LEDB_PORT &= ~LEDB_MASK;
+}
+
+void led_on(bool red)
+{
+	if (red)
+	{
+		LEDA_PORT |= LEDA_MASK;
+		LEDB_PORT &= ~LEDB_MASK;
+	}
+	else
+	{
+		LEDA_PORT &= ~LEDA_MASK;
+		LEDB_PORT |= LEDB_MASK;
+	}
+}
+
 int main()
 {
 	e_main_state mainstate = e_main_state::standby;
@@ -78,7 +98,9 @@ int main()
 	DDRB = 0xff &
 			~(1 << 3);  // PB3 is PWM out;
 	DDRC = 0xff &
-			~(1 << 0);  // ADC0 is batt monitor
+			~(1 << 0) & // ADC0 is batt monitor
+			~(1 << 2) & // PC2 = CHRG
+			~(1 << 3);  // PC3 = STDBY
 	DDRD = 0xff &
 			~(1 << 0) & // PD0 = RX
 			~(1 << 3);  // PD3 is DOUT
@@ -307,7 +329,7 @@ int main()
 #			endif
 			audio::disable();
 
-			LED_PORT &= ~LED_MASK;
+			led_off();
 			blink_timer = 0;
 
 			mainstate = e_main_state::standby;
@@ -328,6 +350,19 @@ int main()
 			mainstate = e_main_state::normal;
 		}
 
+		if (battery::is_standby())
+		{
+			led_on(false);
+		}
+		else if (battery::is_charging())
+		{
+			led_on(true);
+		}
+		else
+		{
+			led_off();
+		}
+
 		if (mainstate == e_main_state::standby)
 		{
 			scale.sleep();
@@ -342,17 +377,19 @@ int main()
 		{
 			update_baseline_timer = 0;
 
-			if (blink_timer < BLINK_TIME)
+			if (!battery::is_standby() && !battery::is_charging())
 			{
-				LED_PORT |= LED_MASK;      
-			}
-			else
-			{
-				LED_PORT &= ~LED_MASK;
+				if (blink_timer < BLINK_TIME)
+				{
+					led_on(battery::is_dying());
+				}
+				else
+				{
+					led_off();
+				}
 			}
 
-			uint16_t blink_interval = battery::is_dying() ? BLINK_INTERVAL_DYING : BLINK_INTERVAL;
-			if (blink_timer >= blink_interval)
+			if (blink_timer >= BLINK_INTERVAL)
 			{      
 				blink_timer = 0;
 			}

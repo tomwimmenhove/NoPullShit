@@ -97,4 +97,26 @@ int16_t battery::getReading(const uint8_t port, bool sleep)
 	return result;
 }
 
+bool battery::is_charging()
+{
+	// Pull CHRG up
+	CHRG_PORT |= CHRG_MASK;
+	_delay_us(1);
+	bool ret = (CHRG_PIN & CHRG_MASK) == 0;
+	CHRG_PORT &= ~CHRG_MASK;
+
+	return ret;
+}
+
+bool battery::is_standby()
+{
+	// Pull STDBY up
+	STDBY_PORT |= STDBY_MASK;
+	_delay_us(1);
+	bool ret = (STDBY_PIN & STDBY_MASK) == 0;
+	STDBY_PORT &= ~STDBY_MASK;
+
+	return ret;
+}
+
 ISR(ADC_vect) { }
