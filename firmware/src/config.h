@@ -10,10 +10,10 @@
 
 //#define DEBUG
 
-#define BEEP_WAVE wave_sine
+#define BEEP_WAVE wave_dog
 
 // Minimum volume (0..255) when pulling just over the maximum pull force (255 effectively disables variable volume)
-#define MIN_VOLUME		(128)
+#define MIN_VOLUME		(255)
 
 // Fraction of the maximum pull force over which to go from minimum to maximum volume (1..255 -> 0..100%)
 #define MAX_OVERPULL	(128)
@@ -27,7 +27,7 @@
 #define RATE 10
 #endif
 
-#define STANDBY_TIMEOUT				(5 * RATE)
+#define STANDBY_TIMEOUT				(20 * RATE)
 
 #define BATT_COMA_BELOW				(400)
 #define BATT_DYING					(750)
@@ -48,9 +48,9 @@
 
 // Pin definitions:
 #define LEDA_PORT PORTD
-#define LEDA_MASK (1 << PIND5)
+#define LEDA_MASK (1 << PIND6)
 #define LEDB_PORT PORTD
-#define LEDB_MASK (1 << PIND6)
+#define LEDB_MASK (1 << PIND5)
 
 #define CHRG_PIN PINC
 #define CHRG_PORT PORTC
